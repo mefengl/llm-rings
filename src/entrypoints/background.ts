@@ -1,4 +1,78 @@
+/* only run once during the period
+ * run at the end of the period
+ */
+interface ThrottleFunction {
+  (fn: (...args: any[]) => void, delay: number): (...args: any[]) => void
+}
+const throttle: ThrottleFunction = (fn, delay) => {
+  let last = 0
+  return (...args) => {
+    const now = Date.now()
+    if (now - last < delay)
+      return
+    last = now
+    return fn(...args)
+  }
+}
+
+// Define interfaces for API responses
+interface V0RateLimit {
+  limit: number
+  remaining: number
+  reset: number
+}
+
+interface BoltRateLimit {
+  billingPeriod: null | string
+  maxPerDay: number
+  maxPerMonth: number
+  nextTier: {
+    level: number
+    limits: {
+      perDay: number
+      perMonth: number
+    }
+    type: string
+  }
+  overflow: {
+    available: number
+    used: number
+  }
+  totalThisMonth: number
+  totalToday: number
+}
+
+// Listen for API requests
 export default defineBackground(() => {
-  // eslint-disable-next-line no-console
-  console.log(`${i18n.t('hello')} background!`, { id: browser.runtime.id })
+  browser.webRequest.onCompleted.addListener(
+    throttle(async (details) => {
+      if (details.url === 'https://v0.dev/chat/api/rate-limit') {
+        try {
+          const response = await fetch(details.url)
+          const data: V0RateLimit = await response.json()
+          await storage.setItem('local:v0RateLimit', data)
+        }
+        catch (error) {
+          console.error('Error fetching v0.dev rate limit:', error)
+        }
+      }
+
+      if (details.url === 'https://bolt.new/api/rate-limits') {
+        try {
+          const response = await fetch(details.url)
+          const data: BoltRateLimit = await response.json()
+          await storage.setItem('local:boltRateLimit', data)
+        }
+        catch (error) {
+          console.error('Error fetching bolt.new rate limit:', error)
+        }
+      }
+    }, 2000),
+    {
+      urls: [
+        'https://v0.dev/chat/api/rate-limit*',
+        'https://bolt.new/api/rate-limits*',
+      ],
+    },
+  )
 })
