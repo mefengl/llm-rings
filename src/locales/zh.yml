@@ -1,4 +1,4 @@
 extension:
-  name: wxt-starter
-  description: https://github.com/mefengl/wxt-starter
+  name: LLM Rings
+  description: 跟踪 llm 应用程序的速率限制，例如 v0 chat, bolt ai
 hello: 你好

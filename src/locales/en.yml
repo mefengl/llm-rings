@@ -1,4 +1,4 @@
 extension:
-  name: wxt-starter
-  description: https://github.com/mefengl/wxt-starter
+  name: LLM Rings
+  description: Track llm app rate limits, such as v0 chat, bolt ai
 hello: Hello
