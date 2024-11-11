@@ -17,6 +17,7 @@ export default defineConfig({
   },
   modules: [
     '@wxt-dev/module-react',
+    '@wxt-dev/auto-icons',
     '@wxt-dev/i18n/module',
   ],
   srcDir: 'src',
