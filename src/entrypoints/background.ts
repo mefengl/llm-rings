@@ -46,7 +46,7 @@ interface BoltRateLimit {
 export default defineBackground(() => {
   browser.webRequest.onCompleted.addListener(
     throttle(async (details) => {
-      if (details.url === 'https://v0.dev/chat/api/rate-limit') {
+      if (details.url.includes('v0.dev/chat')) {
         try {
           const response = await fetch(details.url)
           const data: V0RateLimit = await response.json()
@@ -57,7 +57,7 @@ export default defineBackground(() => {
         }
       }
 
-      if (details.url === 'https://bolt.new/api/rate-limits') {
+      if (details.url.includes('bolt.new')) {
         try {
           const response = await fetch(details.url)
           const data: BoltRateLimit = await response.json()
