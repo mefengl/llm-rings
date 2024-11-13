@@ -44,6 +44,17 @@ interface BoltRateLimit {
   totalToday: number
 }
 
+interface RecraftUser {
+  credits: number
+  plan: {
+    credits_per_period: number
+    refill_period: string
+  }
+  subscription: {
+    credits_expire_time: string
+  }
+}
+
 // Listen for API requests
 export default defineBackground(() => {
   browser.webRequest.onCompleted.addListener(
@@ -71,11 +82,29 @@ export default defineBackground(() => {
           console.error('Error fetching bolt.new rate limit:', error)
         }
       }
+
+      if (details.url.includes('recraft.ai')) {
+        try {
+          const response = await fetch(details.url)
+          const data: RecraftUser = await response.json()
+          await storage.setItem('local:recraftLimit', {
+            lastUpdate: now,
+            period: data.plan.refill_period,
+            remaining: data.credits,
+            resetTime: new Date(data.subscription.credits_expire_time).getTime(),
+            total: data.plan.credits_per_period,
+          })
+        }
+        catch (error) {
+          console.error('Error fetching recraft.ai limit:', error)
+        }
+      }
     }, 2000),
     {
       urls: [
         'https://v0.dev/chat/api/rate-limit*',
         'https://bolt.new/api/rate-limits*',
+        'https://api.recraft.ai/users/me*',
       ],
     },
   )

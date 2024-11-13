@@ -30,6 +30,14 @@ interface BoltRateLimit {
   totalToday: number
 }
 
+interface RecraftLimit {
+  lastUpdate?: number
+  period: string
+  remaining: number
+  resetTime: number
+  total: number
+}
+
 function formatRelativeTime(timestamp: number) {
   const diff = Date.now() - timestamp
   const minutes = Math.floor(diff / 60000)
@@ -70,13 +78,13 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
   return (
     <div className="space-y-2">
-      <div className="h-2 w-full rounded-full bg-gray-200">
+      <div className="w-full h-2 bg-gray-200 rounded-full">
         <div
           className={`h-full rounded-full transition-all ${getBarColor(percentage)}`}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <p className="text-center text-xs italic text-gray-600">
+      <p className="text-xs italic text-center text-gray-600">
         {getEncouragementMessage(percentage)}
       </p>
     </div>
@@ -85,7 +93,7 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
 function StatsCard({ stats, title }: { stats: Record<string, string>, title: string }) {
   return (
-    <div className="rounded-lg border border-gray-200 p-4">
+    <div className="p-4 border border-gray-200 rounded-lg">
       <h3 className="mb-2 text-lg font-medium">{title}</h3>
       <div className="space-y-2">
         {Object.entries(stats).map(([key, value]) => (
@@ -102,6 +110,7 @@ function StatsCard({ stats, title }: { stats: Record<string, string>, title: str
 function App() {
   const v0Data = useStorage<V0RateLimit>('local:v0RateLimit')
   const boltData = useStorage<BoltRateLimit>('local:boltRateLimit')
+  const recraftData = useStorage<RecraftLimit>('local:recraftLimit')
 
   return (
     <div className="w-[300px] space-y-4 p-4">
@@ -153,6 +162,33 @@ function App() {
                   <p className="text-sm text-gray-500">No usage data available yet</p>
                   <Button asChild className="w-full" variant="outline">
                     <a href="https://bolt.new" target="_blank">Try Bolt.new</a>
+                  </Button>
+                </div>
+              )}
+        </div>
+
+        <div className="space-y-4">
+          {recraftData
+            ? (
+                <>
+                  <StatsCard
+                    stats={{
+                      'Last Update': recraftData.lastUpdate ? formatRelativeTime(recraftData.lastUpdate) : 'N/A',
+                      'Period': recraftData.period,
+                      'Reset': new Date(recraftData.resetTime).toLocaleString(),
+                      'Used': `${recraftData.total - recraftData.remaining}/${recraftData.total}`,
+                    }}
+                    title="Recraft.ai"
+                  />
+                  <ProgressBar max={recraftData.total} value={recraftData.remaining} />
+                </>
+              )
+            : (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Recraft.ai</h3>
+                  <p className="text-sm text-gray-500">No usage data available yet</p>
+                  <Button asChild className="w-full" variant="outline">
+                    <a href="https://recraft.ai" target="_blank">Try Recraft.ai</a>
                   </Button>
                 </div>
               )}
