@@ -16,16 +16,33 @@ function useStorage<T>(key: string) {
 }
 
 interface V0RateLimit {
+  lastUpdate?: number
   limit: number
   remaining: number
   reset: number
 }
 
 interface BoltRateLimit {
+  lastUpdate?: number
   maxPerDay: number
   maxPerMonth: number
   totalThisMonth: number
   totalToday: number
+}
+
+function formatRelativeTime(timestamp: number) {
+  const diff = Date.now() - timestamp
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (days > 0)
+    return `${days}d ago`
+  if (hours > 0)
+    return `${hours}h ago`
+  if (minutes > 0)
+    return `${minutes}m ago`
+  return 'just now'
 }
 
 function ProgressBar({ max, value }: { max: number, value: number }) {
@@ -53,13 +70,13 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
   return (
     <div className="space-y-2">
-      <div className="w-full h-2 bg-gray-200 rounded-full">
+      <div className="h-2 w-full rounded-full bg-gray-200">
         <div
           className={`h-full rounded-full transition-all ${getBarColor(percentage)}`}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <p className="text-xs italic text-center text-gray-600">
+      <p className="text-center text-xs italic text-gray-600">
         {getEncouragementMessage(percentage)}
       </p>
     </div>
@@ -68,7 +85,7 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
 function StatsCard({ stats, title }: { stats: Record<string, string>, title: string }) {
   return (
-    <div className="p-4 border border-gray-200 rounded-lg">
+    <div className="rounded-lg border border-gray-200 p-4">
       <h3 className="mb-2 text-lg font-medium">{title}</h3>
       <div className="space-y-2">
         {Object.entries(stats).map(([key, value]) => (
@@ -95,8 +112,9 @@ function App() {
                 <>
                   <StatsCard
                     stats={{
-                      Reset: new Date(v0Data.reset).toLocaleString(),
-                      Used: `${v0Data.limit - v0Data.remaining}/${v0Data.limit}`,
+                      'Last Update': v0Data.lastUpdate ? formatRelativeTime(v0Data.lastUpdate) : 'N/A',
+                      'Reset': new Date(v0Data.reset).toLocaleString(),
+                      'Used': `${v0Data.limit - v0Data.remaining}/${v0Data.limit}`,
                     }}
                     title="V0.dev"
                   />
@@ -120,8 +138,9 @@ function App() {
                 <>
                   <StatsCard
                     stats={{
-                      Month: `${boltData.totalThisMonth.toLocaleString()}/${boltData.maxPerMonth.toLocaleString()}`,
-                      Today: `${boltData.totalToday.toLocaleString()}/${boltData.maxPerDay.toLocaleString()}`,
+                      'Last Update': boltData.lastUpdate ? formatRelativeTime(boltData.lastUpdate) : 'N/A',
+                      'Month': `${boltData.totalThisMonth.toLocaleString()}/${boltData.maxPerMonth.toLocaleString()}`,
+                      'Today': `${boltData.totalToday.toLocaleString()}/${boltData.maxPerDay.toLocaleString()}`,
                     }}
                     title="Bolt.new"
                   />

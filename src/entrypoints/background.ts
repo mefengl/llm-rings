@@ -17,6 +17,7 @@ const throttle: ThrottleFunction = (fn, delay) => {
 
 // Define interfaces for API responses
 interface V0RateLimit {
+  lastUpdate?: number
   limit: number
   remaining: number
   reset: number
@@ -24,6 +25,7 @@ interface V0RateLimit {
 
 interface BoltRateLimit {
   billingPeriod: null | string
+  lastUpdate?: number
   maxPerDay: number
   maxPerMonth: number
   nextTier: {
@@ -46,11 +48,13 @@ interface BoltRateLimit {
 export default defineBackground(() => {
   browser.webRequest.onCompleted.addListener(
     throttle(async (details) => {
+      const now = Date.now()
+
       if (details.url.includes('v0.dev/chat')) {
         try {
           const response = await fetch(details.url)
           const data: V0RateLimit = await response.json()
-          await storage.setItem('local:v0RateLimit', data)
+          await storage.setItem('local:v0RateLimit', { ...data, lastUpdate: now })
         }
         catch (error) {
           console.error('Error fetching v0.dev rate limit:', error)
@@ -61,7 +65,7 @@ export default defineBackground(() => {
         try {
           const response = await fetch(details.url)
           const data: BoltRateLimit = await response.json()
-          await storage.setItem('local:boltRateLimit', data)
+          await storage.setItem('local:boltRateLimit', { ...data, lastUpdate: now })
         }
         catch (error) {
           console.error('Error fetching bolt.new rate limit:', error)
