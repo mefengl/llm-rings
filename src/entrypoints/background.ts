@@ -57,7 +57,7 @@ interface RecraftUser {
 
 // Listen for API requests
 export default defineBackground(() => {
-  browser.webRequest.onCompleted.addListener(
+  browser.webRequest.onSendHeaders.addListener(
     throttle(async (details) => {
       const now = Date.now()
 
@@ -83,9 +83,16 @@ export default defineBackground(() => {
         }
       }
 
+      const headers = details.requestHeaders || []
+      const getHeader = (name: string) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value
+
       if (details.url.includes('recraft.ai')) {
         try {
-          const response = await fetch(details.url)
+          const response = await fetch(details.url, {
+            headers: {
+              authorization: getHeader('authorization') || '',
+            },
+          })
           const data: RecraftUser = await response.json()
           await storage.setItem('local:recraftLimit', {
             lastUpdate: now,
@@ -104,8 +111,9 @@ export default defineBackground(() => {
       urls: [
         'https://v0.dev/chat/api/rate-limit*',
         'https://bolt.new/api/rate-limits*',
-        'https://api.recraft.ai/users/me*',
+        'https://api.recraft.ai/users/me',
       ],
     },
+    ['requestHeaders', 'extraHeaders'],
   )
 })
