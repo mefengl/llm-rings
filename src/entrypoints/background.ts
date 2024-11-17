@@ -108,6 +108,7 @@ export default defineBackground(() => {
       }
     }, 2000),
     {
+      types: ['xmlhttprequest'],
       urls: [
         'https://v0.dev/chat/api/rate-limit*',
         'https://bolt.new/api/rate-limits*',
