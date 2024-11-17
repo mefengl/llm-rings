@@ -6,9 +6,10 @@ export default defineConfig({
     default_locale: 'en',
     description: '__MSG_extension_description__',
     host_permissions: [
-      'https://v0.dev/chat/api/rate-limit*',
-      'https://bolt.new/api/rate-limits*',
-      'https://api.recraft.ai/users/me*',
+      'https://v0.dev/*',
+      'https://bolt.new/*',
+      'https://www.recraft.ai/*',
+      'https://api.recraft.ai/*',
     ],
     name: '__MSG_extension_name__',
     permissions: [
