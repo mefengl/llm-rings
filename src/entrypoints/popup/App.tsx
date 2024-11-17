@@ -57,34 +57,34 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
   const usage = max - value
   const percentage = Math.min((usage / max) * 100, 100)
   const getBarColor = (percentage: number) => {
-    if (percentage >= 90)
+    if (percentage >= 80)
       return 'bg-green-600'
-    if (percentage >= 70)
+    if (percentage >= 60)
       return 'bg-green-500'
-    if (percentage >= 40)
+    if (percentage >= 30)
       return 'bg-green-400'
     return 'bg-green-300'
   }
 
   const getEncouragementMessage = (percentage: number) => {
-    if (percentage >= 90)
+    if (percentage >= 80)
       return 'Amazing usage! You\'re making the most of it! 🚀'
-    if (percentage >= 70)
+    if (percentage >= 60)
       return 'Great progress! Keep going! 💪'
-    if (percentage >= 40)
+    if (percentage >= 30)
       return 'You\'re doing well! More to explore! ✨'
     return 'Just getting started! Unleash the potential! 🌱'
   }
 
   return (
     <div className="space-y-2">
-      <div className="h-2 w-full rounded-full bg-gray-200">
+      <div className="w-full h-2 bg-gray-200 rounded-full">
         <div
           className={`h-full rounded-full transition-all ${getBarColor(percentage)}`}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <p className="text-center text-xs italic text-gray-600">
+      <p className="text-xs italic text-center text-gray-600">
         {getEncouragementMessage(percentage)}
       </p>
     </div>
@@ -93,7 +93,7 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
 function StatsCard({ stats, title }: { stats: Record<string, string>, title: string }) {
   return (
-    <div className="rounded-lg border border-gray-200 p-4">
+    <div className="p-4 border border-gray-200 rounded-lg">
       <h3 className="mb-2 text-lg font-medium">{title}</h3>
       <div className="space-y-2">
         {Object.entries(stats).map(([key, value]) => (
@@ -193,7 +193,7 @@ function App() {
                   <p className="text-xs text-gray-500">
                     Or use
                     <a
-                      className="text-blue-500 hover:underline"
+                      className="hover:underline text-blue-500"
                       href="https://www.recraft.ai/invite/GCJkroxvBq"
                       target="_blank"
                     >
