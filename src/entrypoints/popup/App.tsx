@@ -38,6 +38,16 @@ interface RecraftLimit {
   total: number
 }
 
+interface NotionRateLimit {
+  isEligible: boolean
+  lastUpdate?: number
+  spaceLimit: number
+  spaceUsage: number
+  type: string
+  userLimit: number
+  userUsage: number
+}
+
 function formatRelativeTime(timestamp: number) {
   const diff = Date.now() - timestamp
   const minutes = Math.floor(diff / 60000)
@@ -78,13 +88,13 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
   return (
     <div className="space-y-2">
-      <div className="w-full h-2 bg-gray-200 rounded-full">
+      <div className="h-2 w-full rounded-full bg-gray-200">
         <div
           className={`h-full rounded-full transition-all ${getBarColor(percentage)}`}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <p className="text-xs italic text-center text-gray-600">
+      <p className="text-center text-xs italic text-gray-600">
         {getEncouragementMessage(percentage)}
       </p>
     </div>
@@ -93,7 +103,7 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
 function StatsCard({ stats, title }: { stats: Record<string, string>, title: string }) {
   return (
-    <div className="p-4 border border-gray-200 rounded-lg">
+    <div className="rounded-lg border border-gray-200 p-4">
       <h3 className="mb-2 text-lg font-medium">{title}</h3>
       <div className="space-y-2">
         {Object.entries(stats).map(([key, value]) => (
@@ -111,6 +121,7 @@ function App() {
   const v0Data = useStorage<V0RateLimit>('local:v0RateLimit')
   const boltData = useStorage<BoltRateLimit>('local:boltRateLimit')
   const recraftData = useStorage<RecraftLimit>('local:recraftLimit')
+  const notionData = useStorage<NotionRateLimit>('local:notionRateLimit')
 
   return (
     <div className="w-[300px] space-y-4 p-4">
@@ -193,7 +204,7 @@ function App() {
                   <p className="text-xs text-gray-500">
                     Or use
                     <a
-                      className="hover:underline text-blue-500"
+                      className="text-blue-500 hover:underline"
                       href="https://www.recraft.ai/invite/GCJkroxvBq"
                       target="_blank"
                     >
@@ -201,6 +212,33 @@ function App() {
                     </a>
                     to get 200 credits (I'll get 200 too!)
                   </p>
+                </div>
+              )}
+        </div>
+
+        <div className="space-y-4">
+          {notionData
+            ? (
+                <>
+                  <StatsCard
+                    stats={{
+                      'Last Update': notionData.lastUpdate ? formatRelativeTime(notionData.lastUpdate) : 'N/A',
+                      'Space Usage': `${notionData.spaceUsage}/${notionData.spaceLimit}`,
+                      'Status': notionData.isEligible ? 'Eligible' : 'Not Eligible',
+                      'User Usage': `${notionData.userUsage}/${notionData.userLimit}`,
+                    }}
+                    title="Notion AI"
+                  />
+                  <ProgressBar max={notionData.userLimit} value={notionData.userLimit - notionData.userUsage} />
+                </>
+              )
+            : (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Notion AI</h3>
+                  <p className="text-sm text-gray-500">No usage data available yet</p>
+                  <Button asChild className="w-full" variant="outline">
+                    <a href="https://www.notion.so/" target="_blank">Try Notion AI</a>
+                  </Button>
                 </div>
               )}
         </div>

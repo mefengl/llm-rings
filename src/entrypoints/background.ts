@@ -55,6 +55,16 @@ interface RecraftUser {
   }
 }
 
+interface NotionRateLimit {
+  isEligible: boolean
+  lastUpdate?: number
+  spaceLimit: number
+  spaceUsage: number
+  type: string
+  userLimit: number
+  userUsage: number
+}
+
 // Listen for API requests
 export default defineBackground(() => {
   browser.webRequest.onSendHeaders.addListener(
@@ -106,6 +116,17 @@ export default defineBackground(() => {
           console.error('Error fetching recraft.ai limit:', error)
         }
       }
+
+      if (details.url.includes('notion.so/api/v3/getAIUsageEligibility')) {
+        try {
+          const response = await fetch(details.url)
+          const data: NotionRateLimit = await response.json()
+          await storage.setItem('local:notionRateLimit', { ...data, lastUpdate: now })
+        }
+        catch (error) {
+          console.error('Error fetching notion rate limit:', error)
+        }
+      }
     }, 2000),
     {
       types: ['xmlhttprequest'],
@@ -113,6 +134,7 @@ export default defineBackground(() => {
         'https://v0.dev/chat/api/rate-limit*',
         'https://bolt.new/api/rate-limits*',
         'https://api.recraft.ai/users/me',
+        'https://www.notion.so/api/v3/getAIUsageEligibility*',
       ],
     },
     ['requestHeaders', 'extraHeaders'],
