@@ -88,13 +88,13 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
   return (
     <div className="space-y-2">
-      <div className="h-2 w-full rounded-full bg-gray-200">
+      <div className="w-full h-2 bg-gray-200 rounded-full">
         <div
           className={`h-full rounded-full transition-all ${getBarColor(percentage)}`}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <p className="text-center text-xs italic text-gray-600">
+      <p className="text-xs italic text-center text-gray-600">
         {getEncouragementMessage(percentage)}
       </p>
     </div>
@@ -103,7 +103,7 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
 function StatsCard({ stats, title }: { stats: Record<string, string>, title: string }) {
   return (
-    <div className="rounded-lg border border-gray-200 p-4">
+    <div className="p-4 border border-gray-200 rounded-lg">
       <h3 className="mb-2 text-lg font-medium">{title}</h3>
       <div className="space-y-2">
         {Object.entries(stats).map(([key, value]) => (
@@ -204,7 +204,7 @@ function App() {
                   <p className="text-xs text-gray-500">
                     Or use
                     <a
-                      className="text-blue-500 hover:underline"
+                      className="hover:underline text-blue-500"
                       href="https://www.recraft.ai/invite/GCJkroxvBq"
                       target="_blank"
                     >
@@ -237,7 +237,7 @@ function App() {
                   <h3 className="text-lg font-medium">Notion AI</h3>
                   <p className="text-sm text-gray-500">No usage data available yet</p>
                   <Button asChild className="w-full" variant="outline">
-                    <a href="https://www.notion.so/" target="_blank">Try Notion AI</a>
+                    <a href="https://www.notion.so/chat" target="_blank">Try Notion AI</a>
                   </Button>
                 </div>
               )}
