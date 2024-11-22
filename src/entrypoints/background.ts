@@ -126,6 +126,7 @@ export default defineBackground(() => {
               spaceId: spaceId || '',
             }),
             headers: {
+              'content-type': 'application/json',
               'x-notion-active-user-header': activeUser || '',
               'x-notion-space-id': spaceId || '',
             },
