@@ -119,7 +119,18 @@ export default defineBackground(() => {
 
       if (details.url.includes('notion.so/api/v3/getAIUsageEligibility')) {
         try {
-          const response = await fetch(details.url)
+          const activeUser = getHeader('x-notion-active-user-header')
+          const spaceId = getHeader('x-notion-space-id')
+          const response = await fetch(details.url, {
+            body: JSON.stringify({
+              spaceId: spaceId || '',
+            }),
+            headers: {
+              'x-notion-active-user-header': activeUser || '',
+              'x-notion-space-id': spaceId || '',
+            },
+            method: 'POST',
+          })
           const data: NotionRateLimit = await response.json()
           await storage.setItem('local:notionRateLimit', { ...data, lastUpdate: now })
         }
