@@ -101,10 +101,27 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
   )
 }
 
-function StatsCard({ stats, title }: { stats: Record<string, string>, title: string }) {
+const SERVICE_URLS = {
+  'Bolt.new': 'https://bolt.new',
+  'Notion AI': 'https://www.notion.so/chat',
+  'Recraft.ai': 'https://recraft.ai',
+  'V0.dev': 'https://v0.dev/chat',
+} as const
+
+function StatsCard({ stats, title }: { stats: Record<string, string>, title: keyof typeof SERVICE_URLS }) {
   return (
     <div className="rounded-lg border border-gray-200 p-4">
-      <h3 className="mb-2 text-lg font-medium">{title}</h3>
+      <h3 className="mb-2 flex items-center justify-between text-lg font-medium">
+        {title}
+        <a
+          className="text-xs text-gray-400 hover:text-gray-600"
+          href={SERVICE_URLS[title]}
+          target="_blank"
+          title={`Visit ${title}`}
+        >
+          ↗️
+        </a>
+      </h3>
       <div className="space-y-2">
         {Object.entries(stats).map(([key, value]) => (
           <div className="flex justify-between text-sm" key={key}>
