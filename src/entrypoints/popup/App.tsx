@@ -88,13 +88,13 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
   return (
     <div className="space-y-2">
-      <div className="w-full h-2 bg-gray-200 rounded-full">
+      <div className="h-2 w-full rounded-full bg-gray-200">
         <div
           className={`h-full rounded-full transition-all ${getBarColor(percentage)}`}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <p className="text-xs italic text-center text-gray-600">
+      <p className="text-center text-xs italic text-gray-600">
         {getEncouragementMessage(percentage)}
       </p>
     </div>
@@ -103,7 +103,7 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
 function StatsCard({ stats, title }: { stats: Record<string, string>, title: string }) {
   return (
-    <div className="p-4 border border-gray-200 rounded-lg">
+    <div className="rounded-lg border border-gray-200 p-4">
       <h3 className="mb-2 text-lg font-medium">{title}</h3>
       <div className="space-y-2">
         {Object.entries(stats).map(([key, value]) => (
@@ -204,7 +204,7 @@ function App() {
                   <p className="text-xs text-gray-500">
                     Or use
                     <a
-                      className="hover:underline text-blue-500"
+                      className="text-blue-500 hover:underline"
                       href="https://www.recraft.ai/invite/GCJkroxvBq"
                       target="_blank"
                     >
