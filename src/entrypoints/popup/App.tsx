@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import confetti from 'canvas-confetti'
 import { useEffect, useState } from 'react'
 
 function useStorage<T>(key: string) {
@@ -134,11 +135,37 @@ function StatsCard({ stats, title }: { stats: Record<string, string>, title: key
   )
 }
 
+function calculateUsagePercentage(max: number, remaining: number): number {
+  return Math.min(((max - remaining) / max) * 100, 100)
+}
+
+function checkAllHighUsage(v0Data?: null | V0RateLimit, boltData?: BoltRateLimit | null, recraftData?: null | RecraftLimit, notionData?: NotionRateLimit | null): boolean {
+  if (!v0Data || !boltData || !recraftData || !notionData)
+    return false
+
+  const v0Usage = calculateUsagePercentage(v0Data.limit, v0Data.remaining)
+  const boltUsage = calculateUsagePercentage(boltData.maxPerDay, boltData.maxPerDay - boltData.totalToday)
+  const recraftUsage = calculateUsagePercentage(recraftData.total, recraftData.remaining)
+  const notionUsage = calculateUsagePercentage(notionData.userLimit, notionData.userLimit - notionData.userUsage)
+
+  return [v0Usage, boltUsage, recraftUsage, notionUsage].every(usage => usage >= 80)
+}
+
 function App() {
   const v0Data = useStorage<V0RateLimit>('local:v0RateLimit')
   const boltData = useStorage<BoltRateLimit>('local:boltRateLimit')
   const recraftData = useStorage<RecraftLimit>('local:recraftLimit')
   const notionData = useStorage<NotionRateLimit>('local:notionRateLimit')
+
+  useEffect(() => {
+    if (checkAllHighUsage(v0Data, boltData, recraftData, notionData)) {
+      confetti({
+        origin: { y: 0.6 },
+        particleCount: 100,
+        spread: 70,
+      })
+    }
+  }, [v0Data, boltData, recraftData, notionData])
 
   return (
     <div className="w-[300px] space-y-4 p-4">
