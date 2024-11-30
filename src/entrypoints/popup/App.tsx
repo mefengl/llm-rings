@@ -39,16 +39,6 @@ interface RecraftLimit {
   total: number
 }
 
-interface NotionRateLimit {
-  isEligible: boolean
-  lastUpdate?: number
-  spaceLimit: number
-  spaceUsage: number
-  type: string
-  userLimit: number
-  userUsage: number
-}
-
 function formatRelativeTime(timestamp: number) {
   const diff = Date.now() - timestamp
   const minutes = Math.floor(diff / 60000)
@@ -104,7 +94,6 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
 const SERVICE_URLS = {
   'Bolt.new': 'https://bolt.new',
-  'Notion AI': 'https://www.notion.so/chat',
   'Recraft.ai': 'https://recraft.ai',
   'V0.dev': 'https://v0.dev/chat',
 } as const
@@ -139,33 +128,31 @@ function calculateUsagePercentage(max: number, remaining: number): number {
   return Math.min(((max - remaining) / max) * 100, 100)
 }
 
-function checkAllHighUsage(v0Data?: null | V0RateLimit, boltData?: BoltRateLimit | null, recraftData?: null | RecraftLimit, notionData?: NotionRateLimit | null): boolean {
-  if (!v0Data || !boltData || !recraftData || !notionData)
+function checkAllHighUsage(v0Data?: null | V0RateLimit, boltData?: BoltRateLimit | null, recraftData?: null | RecraftLimit): boolean {
+  if (!v0Data || !boltData || !recraftData)
     return false
 
   const v0Usage = calculateUsagePercentage(v0Data.limit, v0Data.remaining)
   const boltUsage = calculateUsagePercentage(boltData.maxPerDay, boltData.maxPerDay - boltData.totalToday)
   const recraftUsage = calculateUsagePercentage(recraftData.total, recraftData.remaining)
-  const notionUsage = calculateUsagePercentage(notionData.userLimit, notionData.userLimit - notionData.userUsage)
 
-  return [v0Usage, boltUsage, recraftUsage, notionUsage].every(usage => usage >= 80)
+  return [v0Usage, boltUsage, recraftUsage].every(usage => usage >= 80)
 }
 
 function App() {
   const v0Data = useStorage<V0RateLimit>('local:v0RateLimit')
   const boltData = useStorage<BoltRateLimit>('local:boltRateLimit')
   const recraftData = useStorage<RecraftLimit>('local:recraftLimit')
-  const notionData = useStorage<NotionRateLimit>('local:notionRateLimit')
 
   useEffect(() => {
-    if (checkAllHighUsage(v0Data, boltData, recraftData, notionData)) {
+    if (checkAllHighUsage(v0Data, boltData, recraftData)) {
       confetti({
         origin: { y: 0.6 },
         particleCount: 100,
         spread: 70,
       })
     }
-  }, [v0Data, boltData, recraftData, notionData])
+  }, [v0Data, boltData, recraftData])
 
   return (
     <div className="w-[300px] space-y-4 p-4">
@@ -256,33 +243,6 @@ function App() {
                     </a>
                     to get 200 credits (I'll get 200 too!)
                   </p>
-                </div>
-              )}
-        </div>
-
-        <div className="space-y-4">
-          {notionData
-            ? (
-                <>
-                  <StatsCard
-                    stats={{
-                      'Last Update': notionData.lastUpdate ? formatRelativeTime(notionData.lastUpdate) : 'N/A',
-                      'Space Usage': `${notionData.spaceUsage}/${notionData.spaceLimit}`,
-                      'Status': notionData.isEligible ? 'Eligible' : 'Not Eligible',
-                      'User Usage': `${notionData.userUsage}/${notionData.userLimit}`,
-                    }}
-                    title="Notion AI"
-                  />
-                  <ProgressBar max={notionData.userLimit} value={notionData.userLimit - notionData.userUsage} />
-                </>
-              )
-            : (
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Notion AI</h3>
-                  <p className="text-sm text-gray-500">No usage data available yet</p>
-                  <Button asChild className="w-full" variant="outline">
-                    <a href="https://www.notion.so/chat" target="_blank">Try Notion AI</a>
-                  </Button>
                 </div>
               )}
         </div>

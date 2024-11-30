@@ -55,16 +55,6 @@ interface RecraftUser {
   }
 }
 
-interface NotionRateLimit {
-  isEligible: boolean
-  lastUpdate?: number
-  spaceLimit: number
-  spaceUsage: number
-  type: string
-  userLimit: number
-  userUsage: number
-}
-
 async function checkAndRemoveExpiredData(key: string, resetTime: number) {
   const now = Date.now()
   if (now > resetTime) {
@@ -135,33 +125,6 @@ export default defineBackground(() => {
           console.error('Error fetching recraft.ai limit:', error)
         }
       }
-
-      if (details.url.includes('notion.so/api/v3/getAIUsageEligibility')) {
-        const storedData = await storage.getItem('local:notionRateLimit')
-        if (storedData) {
-          await checkAndRemoveExpiredData('local:notionRateLimit', storedData.reset)
-        }
-        try {
-          const activeUser = getHeader('x-notion-active-user-header')
-          const spaceId = getHeader('x-notion-space-id')
-          const response = await fetch(details.url, {
-            body: JSON.stringify({
-              spaceId: spaceId || '',
-            }),
-            headers: {
-              'content-type': 'application/json',
-              'x-notion-active-user-header': activeUser || '',
-              'x-notion-space-id': spaceId || '',
-            },
-            method: 'POST',
-          })
-          const data: NotionRateLimit = await response.json()
-          await storage.setItem('local:notionRateLimit', { ...data, lastUpdate: now })
-        }
-        catch (error) {
-          console.error('Error fetching notion rate limit:', error)
-        }
-      }
     }, 2000),
     {
       types: ['xmlhttprequest'],
@@ -169,7 +132,6 @@ export default defineBackground(() => {
         'https://v0.dev/chat/api/rate-limit*',
         'https://bolt.new/api/rate-limits*',
         'https://api.recraft.ai/users/me',
-        'https://www.notion.so/api/v3/getAIUsageEligibility*',
       ],
     },
     ['requestHeaders', 'extraHeaders'],

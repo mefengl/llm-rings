@@ -10,7 +10,6 @@ export default defineConfig({
       'https://bolt.new/*',
       'https://www.recraft.ai/*',
       'https://api.recraft.ai/*',
-      'https://www.notion.so/*',
     ],
     name: '__MSG_extension_name__',
     permissions: [
