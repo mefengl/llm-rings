@@ -65,6 +65,13 @@ interface NotionRateLimit {
   userUsage: number
 }
 
+async function checkAndRemoveExpiredData(key: string, resetTime: number) {
+  const now = Date.now()
+  if (now > resetTime) {
+    await storage.removeItem(key)
+  }
+}
+
 // Listen for API requests
 export default defineBackground(() => {
   browser.webRequest.onSendHeaders.addListener(
@@ -72,6 +79,10 @@ export default defineBackground(() => {
       const now = Date.now()
 
       if (details.url.includes('v0.dev/chat')) {
+        const storedData = await storage.getItem('local:v0RateLimit')
+        if (storedData) {
+          await checkAndRemoveExpiredData('local:v0RateLimit', storedData.reset)
+        }
         try {
           const response = await fetch(details.url)
           const data: V0RateLimit = await response.json()
@@ -83,6 +94,10 @@ export default defineBackground(() => {
       }
 
       if (details.url.includes('bolt.new')) {
+        const storedData = await storage.getItem('local:boltRateLimit')
+        if (storedData) {
+          await checkAndRemoveExpiredData('local:boltRateLimit', storedData.nextTier.limits.perMonth)
+        }
         try {
           const response = await fetch(details.url)
           const data: BoltRateLimit = await response.json()
@@ -97,6 +112,10 @@ export default defineBackground(() => {
       const getHeader = (name: string) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value
 
       if (details.url.includes('recraft.ai')) {
+        const storedData = await storage.getItem('local:recraftLimit')
+        if (storedData) {
+          await checkAndRemoveExpiredData('local:recraftLimit', storedData.resetTime)
+        }
         try {
           const response = await fetch(details.url, {
             headers: {
@@ -118,6 +137,10 @@ export default defineBackground(() => {
       }
 
       if (details.url.includes('notion.so/api/v3/getAIUsageEligibility')) {
+        const storedData = await storage.getItem('local:notionRateLimit')
+        if (storedData) {
+          await checkAndRemoveExpiredData('local:notionRateLimit', storedData.reset)
+        }
         try {
           const activeUser = getHeader('x-notion-active-user-header')
           const spaceId = getHeader('x-notion-space-id')
