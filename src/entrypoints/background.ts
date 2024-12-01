@@ -55,24 +55,37 @@ interface RecraftUser {
   }
 }
 
-async function checkAndRemoveExpiredData(key: string, resetTime: number) {
+async function checkAllExpiredData() {
   const now = Date.now()
-  if (now > resetTime) {
-    await storage.removeItem(key)
+
+  // Check V0.dev data
+  const v0Data = await storage.getItem('local:v0RateLimit')
+  if (v0Data && now > v0Data.reset) {
+    await storage.removeItem('local:v0RateLimit')
+  }
+
+  // Check Bolt.new data
+  const boltData = await storage.getItem('local:boltRateLimit')
+  if (boltData && now > boltData.nextTier.limits.perMonth) {
+    await storage.removeItem('local:boltRateLimit')
+  }
+
+  // Check Recraft.ai data
+  const recraftData = await storage.getItem('local:recraftLimit')
+  if (recraftData && now > recraftData.resetTime) {
+    await storage.removeItem('local:recraftLimit')
   }
 }
 
-// Listen for API requests
 export default defineBackground(() => {
+  // Check for expired data periodically
+  setInterval(checkAllExpiredData, 60000) // Check every minute
+
   browser.webRequest.onSendHeaders.addListener(
     throttle(async (details) => {
       const now = Date.now()
 
       if (details.url.includes('v0.dev/chat')) {
-        const storedData = await storage.getItem('local:v0RateLimit')
-        if (storedData) {
-          await checkAndRemoveExpiredData('local:v0RateLimit', storedData.reset)
-        }
         try {
           const response = await fetch(details.url)
           const data: V0RateLimit = await response.json()
@@ -84,10 +97,6 @@ export default defineBackground(() => {
       }
 
       if (details.url.includes('bolt.new')) {
-        const storedData = await storage.getItem('local:boltRateLimit')
-        if (storedData) {
-          await checkAndRemoveExpiredData('local:boltRateLimit', storedData.nextTier.limits.perMonth)
-        }
         try {
           const response = await fetch(details.url)
           const data: BoltRateLimit = await response.json()
@@ -102,10 +111,6 @@ export default defineBackground(() => {
       const getHeader = (name: string) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value
 
       if (details.url.includes('recraft.ai')) {
-        const storedData = await storage.getItem('local:recraftLimit')
-        if (storedData) {
-          await checkAndRemoveExpiredData('local:recraftLimit', storedData.resetTime)
-        }
         try {
           const response = await fetch(details.url, {
             headers: {
