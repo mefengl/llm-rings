@@ -104,19 +104,31 @@ const SERVICE_URLS = {
   'V0.dev': 'https://v0.dev/chat',
 } as const
 
-function StatsCard({ stats, title }: { stats: Record<string, string>, title: keyof typeof SERVICE_URLS }) {
+function isDataStale(lastUpdate?: number): boolean {
+  if (!lastUpdate)
+    return true
+  const STALE_THRESHOLD = 8 * 60 * 60 * 1000 // 8 hours in milliseconds
+  return Date.now() - lastUpdate > STALE_THRESHOLD
+}
+
+function StatsCard({ isStale, stats, title }: { isStale: boolean, stats: Record<string, string>, title: keyof typeof SERVICE_URLS }) {
   return (
-    <div className="rounded-lg border border-gray-200 p-4">
+    <div className={`rounded-lg border border-gray-200 p-4 ${isStale ? 'opacity-70' : ''}`}>
       <h3 className="mb-2 flex items-center justify-between text-lg font-medium">
         {title}
-        <a
-          className="text-xs text-gray-400 hover:text-gray-600"
-          href={SERVICE_URLS[title]}
-          target="_blank"
-          title={`Visit ${title}`}
-        >
-          ↗️
-        </a>
+        <div className="flex items-center gap-2">
+          {isStale && (
+            <span className="text-xs text-amber-500" title="Data is older than 8 hours">⚠️ Stale</span>
+          )}
+          <a
+            className="text-xs text-gray-400 hover:text-gray-600"
+            href={SERVICE_URLS[title]}
+            target="_blank"
+            title={`Visit ${title}`}
+          >
+            ↗️
+          </a>
+        </div>
       </h3>
       <div className="space-y-2">
         {Object.entries(stats).map(([key, value]) => (
@@ -212,6 +224,7 @@ function App() {
             ? (
                 <>
                   <StatsCard
+                    isStale={isDataStale(v0Data.lastUpdate)}
                     stats={{
                       'Last Update': v0Data.lastUpdate ? formatRelativeTime(v0Data.lastUpdate) : 'N/A',
                       'Reset': new Date(v0Data.reset).toLocaleString(),
@@ -238,6 +251,7 @@ function App() {
             ? (
                 <>
                   <StatsCard
+                    isStale={isDataStale(boltData.lastUpdate)}
                     stats={{
                       'Last Update': boltData.lastUpdate ? formatRelativeTime(boltData.lastUpdate) : 'N/A',
                       'Month': `${boltData.totalThisMonth.toLocaleString()}/${boltData.maxPerMonth.toLocaleString()}`,
@@ -264,6 +278,7 @@ function App() {
             ? (
                 <>
                   <StatsCard
+                    isStale={isDataStale(recraftData.lastUpdate)}
                     stats={{
                       'Last Update': recraftData.lastUpdate ? formatRelativeTime(recraftData.lastUpdate) : 'N/A',
                       'Period': recraftData.period,

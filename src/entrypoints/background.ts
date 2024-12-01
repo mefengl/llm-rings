@@ -55,32 +55,7 @@ interface RecraftUser {
   }
 }
 
-async function checkAllExpiredData() {
-  const now = Date.now()
-
-  // Check V0.dev data
-  const v0Data = await storage.getItem('local:v0RateLimit')
-  if (v0Data && now > v0Data.reset) {
-    await storage.removeItem('local:v0RateLimit')
-  }
-
-  // Check Bolt.new data
-  const boltData = await storage.getItem('local:boltRateLimit')
-  if (boltData && now > boltData.nextTier.limits.perMonth) {
-    await storage.removeItem('local:boltRateLimit')
-  }
-
-  // Check Recraft.ai data
-  const recraftData = await storage.getItem('local:recraftLimit')
-  if (recraftData && now > recraftData.resetTime) {
-    await storage.removeItem('local:recraftLimit')
-  }
-}
-
 export default defineBackground(() => {
-  // Check for expired data periodically
-  setInterval(checkAllExpiredData, 60000) // Check every minute
-
   browser.webRequest.onSendHeaders.addListener(
     throttle(async (details) => {
       const now = Date.now()
