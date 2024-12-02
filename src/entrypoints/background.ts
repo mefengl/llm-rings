@@ -55,6 +55,13 @@ interface RecraftUser {
   }
 }
 
+interface ElevenLabsResponse {
+  subscription: {
+    character_count: number
+    character_limit: number
+  }
+}
+
 export default defineBackground(() => {
   browser.webRequest.onSendHeaders.addListener(
     throttle(async (details) => {
@@ -105,6 +112,21 @@ export default defineBackground(() => {
           console.error('Error fetching recraft.ai limit:', error)
         }
       }
+
+      if (details.url.includes('elevenlabs.io/v1/workspace')) {
+        try {
+          const response = await fetch(details.url)
+          const data: ElevenLabsResponse = await response.json()
+          await storage.setItem('local:elevenLabsLimit', {
+            characterCount: data.subscription.character_count,
+            characterLimit: data.subscription.character_limit,
+            lastUpdate: now,
+          })
+        }
+        catch (error) {
+          console.error('Error fetching elevenlabs.io limit:', error)
+        }
+      }
     }, 2000),
     {
       types: ['xmlhttprequest'],
@@ -112,6 +134,7 @@ export default defineBackground(() => {
         'https://v0.dev/chat/api/rate-limit*',
         'https://bolt.new/api/rate-limits*',
         'https://api.recraft.ai/users/me',
+        'https://api.us.elevenlabs.io/v1/workspace*',
       ],
     },
     ['requestHeaders', 'extraHeaders'],

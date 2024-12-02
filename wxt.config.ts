@@ -10,6 +10,8 @@ export default defineConfig({
       'https://bolt.new/*',
       'https://www.recraft.ai/*',
       'https://api.recraft.ai/*',
+      'https://elevenlabs.io/*',
+      'https://api.us.elevenlabs.io/*',
     ],
     name: '__MSG_extension_name__',
     permissions: [

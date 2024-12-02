@@ -45,6 +45,12 @@ interface StreakData {
   lastCompleted?: number
 }
 
+interface ElevenLabsLimit {
+  characterCount: number
+  characterLimit: number
+  lastUpdate?: number
+}
+
 function formatRelativeTime(timestamp: number) {
   const diff = Date.now() - timestamp
   const minutes = Math.floor(diff / 60000)
@@ -100,6 +106,7 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
 const SERVICE_URLS = {
   'Bolt.new': 'https://bolt.new',
+  'ElevenLabs': 'https://elevenlabs.io',
   'Recraft.ai': 'https://recraft.ai',
   'V0.dev': 'https://v0.dev/chat',
 } as const
@@ -178,6 +185,7 @@ function App() {
   const v0Data = useStorage<V0RateLimit>('local:v0RateLimit')
   const boltData = useStorage<BoltRateLimit>('local:boltRateLimit')
   const recraftData = useStorage<RecraftLimit>('local:recraftLimit')
+  const elevenLabsData = useStorage<ElevenLabsLimit>('local:elevenLabsLimit')
   const streakData = useStorage<StreakData>('local:streakData')
 
   useEffect(() => {
@@ -308,6 +316,32 @@ function App() {
                     </a>
                     to get 200 credits (I'll get 200 too!)
                   </p>
+                </div>
+              )}
+        </div>
+
+        <div className="space-y-4">
+          {elevenLabsData
+            ? (
+                <>
+                  <StatsCard
+                    isStale={isDataStale(elevenLabsData.lastUpdate)}
+                    stats={{
+                      'Last Update': elevenLabsData.lastUpdate ? formatRelativeTime(elevenLabsData.lastUpdate) : 'N/A',
+                      'Used': `${elevenLabsData.characterCount}/${elevenLabsData.characterLimit}`,
+                    }}
+                    title="ElevenLabs"
+                  />
+                  <ProgressBar max={elevenLabsData.characterLimit} value={elevenLabsData.characterLimit - elevenLabsData.characterCount} />
+                </>
+              )
+            : (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">ElevenLabs</h3>
+                  <p className="text-sm text-gray-500">No usage data available yet</p>
+                  <Button asChild className="w-full" variant="outline">
+                    <a href="https://elevenlabs.io" target="_blank">Try ElevenLabs</a>
+                  </Button>
                 </div>
               )}
         </div>
