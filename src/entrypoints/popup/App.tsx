@@ -114,7 +114,7 @@ const SERVICE_URLS = {
 function isDataStale(lastUpdate?: number): boolean {
   if (!lastUpdate)
     return true
-  const STALE_THRESHOLD = 8 * 60 * 60 * 1000 // 8 hours in milliseconds
+  const STALE_THRESHOLD = 16 * 60 * 60 * 1000 // 16 hours in milliseconds
   return Date.now() - lastUpdate > STALE_THRESHOLD
 }
 
