@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button'
 import confetti from 'canvas-confetti'
 import { useEffect, useState } from 'react'
 
-function useStorage<T>(key: string) {
+type StorageKey = `local:${string}` | `managed:${string}` | `session:${string}` | `sync:${string}`
+function useStorage<T>(key: StorageKey) {
   const [value, setValue] = useState<null | T>(null)
   useEffect(() => {
     const fetchStorageValue = async () => {
@@ -49,6 +50,14 @@ interface ElevenLabsLimit {
   characterCount: number
   characterLimit: number
   lastUpdate?: number
+}
+
+interface CustomAILimit {
+  characterCount: number
+  characterLimit: number
+  domainName: string
+  lastUpdate?: number
+  period: string
 }
 
 function formatRelativeTime(timestamp: number) {
@@ -118,7 +127,8 @@ function isDataStale(lastUpdate?: number): boolean {
   return Date.now() - lastUpdate > STALE_THRESHOLD
 }
 
-function StatsCard({ isStale, stats, title }: { isStale: boolean, stats: Record<string, string>, title: keyof typeof SERVICE_URLS }) {
+type StatsCardTitle = keyof typeof SERVICE_URLS | string
+function StatsCard({ isStale, stats, title }: { isStale: boolean, stats: Record<string, string>, title: StatsCardTitle }) {
   return (
     <div className={`rounded-lg border border-gray-200 p-4 ${isStale ? 'opacity-70' : ''}`}>
       <h3 className="mb-2 flex items-center justify-between text-lg font-medium">
@@ -129,7 +139,11 @@ function StatsCard({ isStale, stats, title }: { isStale: boolean, stats: Record<
           )}
           <a
             className="text-xs text-gray-400 hover:text-gray-600"
-            href={SERVICE_URLS[title]}
+            href={
+              title in SERVICE_URLS
+                ? SERVICE_URLS[title as keyof typeof SERVICE_URLS]
+                : title
+            }
             target="_blank"
             title={`Visit ${title}`}
           >
@@ -187,6 +201,7 @@ function App() {
   const recraftData = useStorage<RecraftLimit>('local:recraftLimit')
   const elevenLabsData = useStorage<ElevenLabsLimit>('local:elevenLabsLimit')
   const streakData = useStorage<StreakData>('local:streakData')
+  const customAIData = useStorage<CustomAILimit>('local:customAILimit')
 
   useEffect(() => {
     const updateStreak = async () => {
@@ -344,6 +359,28 @@ function App() {
                   </Button>
                 </div>
               )}
+        </div>
+
+        <div className="space-y-4">
+          {customAIData
+            ? (
+                <>
+                  <StatsCard
+                    isStale={isDataStale(customAIData.lastUpdate)}
+                    stats={{
+                      'Last Update': customAIData.lastUpdate ? formatRelativeTime(customAIData.lastUpdate) : 'N/A',
+                      'Period': customAIData.period,
+                      'Used': `${customAIData.characterCount}/${customAIData.characterLimit}`,
+                    }}
+                    title={customAIData.domainName}
+                  />
+                  <ProgressBar
+                    max={customAIData.characterLimit}
+                    value={customAIData.characterLimit - customAIData.characterCount}
+                  />
+                </>
+              )
+            : null}
         </div>
       </div>
     </div>

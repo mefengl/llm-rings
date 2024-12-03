@@ -14,9 +14,15 @@ export default defineConfig({
       'https://api.us.elevenlabs.io/*',
     ],
     name: '__MSG_extension_name__',
+    optional_host_permissions: [
+      '*://*/*',
+    ],
     permissions: [
       'storage',
       'webRequest',
+      'contextMenus',
+      'activeTab',
+      'scripting',
     ],
   },
   modules: [
