@@ -134,7 +134,7 @@ export default defineBackground(() => {
         'https://v0.dev/chat/api/rate-limit*',
         'https://bolt.new/api/rate-limits*',
         'https://api.recraft.ai/users/me',
-        'https://api.us.elevenlabs.io/v1/workspace*',
+        'https://api.us.elevenlabs.io/v1/workspace',
       ],
     },
     ['requestHeaders', 'extraHeaders'],
