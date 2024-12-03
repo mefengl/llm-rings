@@ -106,7 +106,7 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
 const SERVICE_URLS = {
   'Bolt.new': 'https://bolt.new',
-  'ElevenLabs': 'https://elevenlabs.io',
+  'ElevenLabs': 'https://elevenlabs.io/app/sign-up',
   'Recraft.ai': 'https://recraft.ai',
   'V0.dev': 'https://v0.dev/chat',
 } as const
