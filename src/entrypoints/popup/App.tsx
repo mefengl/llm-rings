@@ -40,12 +40,6 @@ interface RecraftLimit {
   total: number
 }
 
-interface StreakData {
-  currentStreak: number
-  highestStreak: number
-  lastCompleted?: number
-}
-
 interface ElevenLabsLimit {
   characterCount: number
   characterLimit: number
@@ -178,69 +172,15 @@ function checkAllHighUsage(v0Data?: null | V0RateLimit, boltData?: BoltRateLimit
   return [v0Usage, boltUsage, recraftUsage].every(usage => usage >= 80)
 }
 
-function StreakDisplay({ streak }: { streak: StreakData }) {
-  return (
-    <div className="mb-4 flex items-center justify-between rounded-lg border border-gray-200 p-3">
-      <div className="flex items-center space-x-2">
-        <span className="text-amber-500">🔥</span>
-        <span className="text-sm font-medium">Current Streak:</span>
-        <span className="text-lg font-bold text-amber-500">{streak.currentStreak}</span>
-      </div>
-      <div className="flex items-center space-x-2">
-        <span className="text-purple-500">⭐</span>
-        <span className="text-sm font-medium">Highest:</span>
-        <span className="text-lg font-bold text-purple-500">{streak.highestStreak}</span>
-      </div>
-    </div>
-  )
-}
-
 function App() {
   const v0Data = useStorage<V0RateLimit>('local:v0RateLimit')
   const boltData = useStorage<BoltRateLimit>('local:boltRateLimit')
   const recraftData = useStorage<RecraftLimit>('local:recraftLimit')
   const elevenLabsData = useStorage<ElevenLabsLimit>('local:elevenLabsLimit')
-  const streakData = useStorage<StreakData>('local:streakData')
   const customAIData = useStorage<CustomAILimit>('local:customAILimit')
-
-  useEffect(() => {
-    const updateStreak = async () => {
-      if (checkAllHighUsage(v0Data, boltData, recraftData)) {
-        confetti({
-          origin: { y: 0.6 },
-          particleCount: 100,
-          spread: 70,
-        })
-
-        const today = new Date().setHours(0, 0, 0, 0)
-        const currentStreak = await storage.getItem<StreakData>('local:streakData') || {
-          currentStreak: 0,
-          highestStreak: 0,
-        }
-
-        // If last completed is today, do nothing
-        if (currentStreak.lastCompleted === today)
-          return
-
-        // If last completed was yesterday, increment streak
-        const isConsecutiveDay = currentStreak.lastCompleted === today - 86400000
-
-        const newStreakData: StreakData = {
-          currentStreak: isConsecutiveDay ? currentStreak.currentStreak + 1 : 1,
-          highestStreak: Math.max(isConsecutiveDay ? currentStreak.currentStreak + 1 : 1, currentStreak.highestStreak),
-          lastCompleted: today,
-        }
-
-        await storage.setItem('local:streakData', newStreakData)
-      }
-    }
-
-    updateStreak()
-  }, [v0Data, boltData, recraftData])
 
   return (
     <div className="w-[300px] space-y-4 p-4">
-      {streakData && <StreakDisplay streak={streakData} />}
       <div className="space-y-4">
         <div className="space-y-4">
           {v0Data
