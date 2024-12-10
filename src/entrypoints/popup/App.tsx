@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button'
-import confetti from 'canvas-confetti'
 import { useEffect, useState } from 'react'
 
 type StorageKey = `local:${string}` | `managed:${string}` | `session:${string}` | `sync:${string}`
@@ -155,21 +154,6 @@ function StatsCard({ isStale, stats, title }: { isStale: boolean, stats: Record<
       </div>
     </div>
   )
-}
-
-function calculateUsagePercentage(max: number, remaining: number): number {
-  return Math.min(((max - remaining) / max) * 100, 100)
-}
-
-function checkAllHighUsage(v0Data?: null | V0RateLimit, boltData?: BoltRateLimit | null, recraftData?: null | RecraftLimit): boolean {
-  if (!v0Data || !boltData || !recraftData)
-    return false
-
-  const v0Usage = calculateUsagePercentage(v0Data.limit, v0Data.remaining)
-  const boltUsage = calculateUsagePercentage(boltData.maxPerDay, boltData.maxPerDay - boltData.totalToday)
-  const recraftUsage = calculateUsagePercentage(recraftData.total, recraftData.remaining)
-
-  return [v0Usage, boltUsage, recraftUsage].every(usage => usage >= 80)
 }
 
 function App() {
