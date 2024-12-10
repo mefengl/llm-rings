@@ -136,7 +136,7 @@ function StatsCard({ isStale, stats, title }: { isStale: boolean, stats: Record<
             href={
               title in SERVICE_URLS
                 ? SERVICE_URLS[title as keyof typeof SERVICE_URLS]
-                : title
+                : `https://${title}`
             }
             target="_blank"
             title={`Visit ${title}`}
