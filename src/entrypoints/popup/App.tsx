@@ -53,6 +53,13 @@ interface CustomAILimit {
   period: string
 }
 
+interface SunoLimit {
+  credits: number
+  lastUpdate?: number
+  monthlyLimit: number
+  monthlyUsage: number
+}
+
 function formatRelativeTime(timestamp: number) {
   const diff = Date.now() - timestamp
   const minutes = Math.floor(diff / 60000)
@@ -110,6 +117,7 @@ const SERVICE_URLS = {
   'Bolt.new': 'https://bolt.new',
   'ElevenLabs': 'https://elevenlabs.io/app/sign-up',
   'Recraft.ai': 'https://recraft.ai',
+  'Suno': 'https://suno.com',
   'V0.dev': 'https://v0.dev/chat',
 } as const
 
@@ -162,6 +170,7 @@ function App() {
   const recraftData = useStorage<RecraftLimit>('local:recraftLimit')
   const elevenLabsData = useStorage<ElevenLabsLimit>('local:elevenLabsLimit')
   const customAIData = useStorage<CustomAILimit>('local:customAILimit')
+  const sunoData = useStorage<SunoLimit>('local:sunoLimit')
 
   return (
     <div className="w-[300px] space-y-4 p-4">
@@ -305,6 +314,44 @@ function App() {
                 </>
               )
             : null}
+        </div>
+
+        <div className="space-y-4">
+          {sunoData
+            ? (
+                <>
+                  <StatsCard
+                    isStale={isDataStale(sunoData.lastUpdate)}
+                    stats={{
+                      'Credits Left': sunoData.credits.toString(),
+                      'Last Update': sunoData.lastUpdate ? formatRelativeTime(sunoData.lastUpdate) : 'N/A',
+                      'Monthly': `${sunoData.monthlyUsage}/${sunoData.monthlyLimit}`,
+                    }}
+                    title="Suno"
+                  />
+                  <ProgressBar max={sunoData.monthlyLimit} value={sunoData.monthlyLimit - sunoData.monthlyUsage} />
+                </>
+              )
+            : (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Suno</h3>
+                  <p className="text-sm text-gray-500">No usage data available yet</p>
+                  <Button asChild className="w-full" variant="outline">
+                    <a href="https://suno.com" target="_blank">Try Suno</a>
+                  </Button>
+                  <p className="text-xs text-gray-500">
+                    Or use
+                    <a
+                      className="text-blue-500 hover:underline"
+                      href="https://suno.com/invite/@rareguitarpick7005"
+                      target="_blank"
+                    >
+                      {` suno invite link `}
+                    </a>
+                    to get started!
+                  </p>
+                </div>
+              )}
         </div>
       </div>
     </div>

@@ -72,6 +72,13 @@ interface CustomAIResponse {
   user_usage: number
 }
 
+interface SunoResponse {
+  credits: number
+  monthly_limit: number
+  monthly_usage: number
+  total_credits_left: number
+}
+
 interface RequestHeader {
   name: string
   value: string
@@ -162,6 +169,22 @@ export default defineBackground(() => {
           console.error('Error fetching custom AI limit:', error)
         }
       }
+
+      if (details.url.includes('suno.com/api/billing/info')) {
+        try {
+          const response = await fetch(details.url)
+          const data: SunoResponse = await response.json()
+          await storage.setItem('local:sunoLimit', {
+            credits: data.total_credits_left,
+            lastUpdate: now,
+            monthlyLimit: data.monthly_limit,
+            monthlyUsage: data.monthly_usage,
+          })
+        }
+        catch (error) {
+          console.error('Error fetching suno.com limit:', error)
+        }
+      }
     }, 2000),
     {
       types: ['xmlhttprequest'],
@@ -171,6 +194,7 @@ export default defineBackground(() => {
         'https://api.recraft.ai/users/me',
         'https://api.us.elevenlabs.io/v1/workspace',
         '*://*/backend-api/usage*',
+        'https://studio-api.prod.suno.com/api/billing/info*',
       ],
     },
     ['requestHeaders', 'extraHeaders'],
