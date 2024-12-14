@@ -323,9 +323,9 @@ function App() {
                   <StatsCard
                     isStale={isDataStale(sunoData.lastUpdate)}
                     stats={{
-                      'Credits Left': sunoData.credits.toString(),
+                      'Credits Left': sunoData.credits?.toString() ?? '0',
                       'Last Update': sunoData.lastUpdate ? formatRelativeTime(sunoData.lastUpdate) : 'N/A',
-                      'Monthly': `${sunoData.monthlyUsage}/${sunoData.monthlyLimit}`,
+                      'Monthly': `${sunoData.monthlyUsage ?? 0}/${sunoData.monthlyLimit ?? 0}`,
                     }}
                     title="Suno"
                   />
