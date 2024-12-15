@@ -76,6 +76,11 @@ interface SunoResponse {
   credits: number
   monthly_limit: number
   monthly_usage: number
+  plans: Array<{
+    features: string
+    level: number
+    name: string
+  }>
   total_credits_left: number
 }
 

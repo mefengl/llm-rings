@@ -324,12 +324,17 @@ function App() {
                     isStale={isDataStale(sunoData.lastUpdate)}
                     stats={{
                       'Credits Left': sunoData.credits?.toString() ?? '0',
+                      'Daily Usage': `${sunoData.monthlyUsage}/${sunoData.monthlyLimit}`,
                       'Last Update': sunoData.lastUpdate ? formatRelativeTime(sunoData.lastUpdate) : 'N/A',
-                      'Monthly': `${sunoData.monthlyUsage ?? 0}/${sunoData.monthlyLimit ?? 0}`,
                     }}
                     title="Suno"
                   />
-                  <ProgressBar max={sunoData.monthlyLimit} value={sunoData.monthlyLimit - sunoData.monthlyUsage} />
+                  {sunoData.monthlyLimit > 0 && (
+                    <ProgressBar
+                      max={sunoData.monthlyLimit}
+                      value={sunoData.monthlyLimit - sunoData.monthlyUsage}
+                    />
+                  )}
                 </>
               )
             : (
