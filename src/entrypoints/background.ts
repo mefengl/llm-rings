@@ -73,15 +73,8 @@ interface CustomAIResponse {
 }
 
 interface SunoResponse {
-  credits: number
-  monthly_limit: number
-  monthly_usage: number
-  plans: Array<{
-    features: string
-    level: number
-    name: string
-  }>
-  total_credits_left: number
+  free_web_v4_gens_remaining: number
+  // ...other fields not used
 }
 
 interface RequestHeader {
@@ -180,10 +173,10 @@ export default defineBackground(() => {
           const response = await fetch(details.url)
           const data: SunoResponse = await response.json()
           await storage.setItem('local:sunoLimit', {
-            credits: data.total_credits_left,
+            credits: data.free_web_v4_gens_remaining,
             lastUpdate: now,
-            monthlyLimit: data.monthly_limit,
-            monthlyUsage: data.monthly_usage,
+            monthlyLimit: 10,
+            monthlyUsage: 10 - data.free_web_v4_gens_remaining,
           })
         }
         catch (error) {
