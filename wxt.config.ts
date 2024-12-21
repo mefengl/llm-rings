@@ -12,8 +12,6 @@ export default defineConfig({
       'https://api.recraft.ai/*',
       'https://elevenlabs.io/*',
       'https://api.us.elevenlabs.io/*',
-      'https://suno.com/*',
-      'https://studio-api.prod.suno.com/*',
     ],
     name: '__MSG_extension_name__',
     optional_host_permissions: [
