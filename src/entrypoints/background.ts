@@ -60,7 +60,11 @@ interface RecraftUser {
 interface ElevenLabsResponse {
   subscription: {
     character_count: number
+    character_count_reported: number
     character_limit: number
+    last_character_limit_reset_unix: number
+    next_character_limit_reset_unix: number
+    tier: string
   }
 }
 
@@ -131,14 +135,21 @@ export default defineBackground(() => {
         }
       }
 
-      if (details.url.includes('elevenlabs.io/v1/workspace')) {
+      if (details.url.includes('api.us.elevenlabs.io/v1/workspace')) {
         try {
-          const response = await fetch(details.url)
+          const response = await fetch(details.url, {
+            headers: {
+              'xi-api-key': getHeader('xi-api-key') || '',
+            },
+          })
           const data: ElevenLabsResponse = await response.json()
           await storage.setItem('local:elevenLabsLimit', {
-            characterCount: data.subscription.character_count,
+            characterCount: data.subscription.character_count + data.subscription.character_count_reported,
             characterLimit: data.subscription.character_limit,
+            lastReset: data.subscription.last_character_limit_reset_unix * 1000,
             lastUpdate: now,
+            nextReset: data.subscription.next_character_limit_reset_unix * 1000,
+            tier: data.subscription.tier,
           })
         }
         catch (error) {

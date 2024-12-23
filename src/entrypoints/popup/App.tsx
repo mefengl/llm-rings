@@ -42,7 +42,10 @@ interface RecraftLimit {
 interface ElevenLabsLimit {
   characterCount: number
   characterLimit: number
+  lastReset: number
   lastUpdate?: number
+  nextReset: number
+  tier: string
 }
 
 interface CustomAILimit {
@@ -267,7 +270,8 @@ function App() {
                     isStale={isDataStale(elevenLabsData.lastUpdate)}
                     stats={{
                       'Last Update': elevenLabsData.lastUpdate ? formatRelativeTime(elevenLabsData.lastUpdate) : 'N/A',
-                      'Used': `${elevenLabsData.characterCount}/${elevenLabsData.characterLimit}`,
+                      'Next Reset': new Date(elevenLabsData.nextReset).toLocaleString(),
+                      'Used': `${elevenLabsData.characterCount.toLocaleString()}/${elevenLabsData.characterLimit.toLocaleString()}`,
                     }}
                     title="ElevenLabs"
                   />
