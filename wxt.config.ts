@@ -12,6 +12,7 @@ export default defineConfig({
       'https://api.recraft.ai/*',
       'https://elevenlabs.io/*',
       'https://api.us.elevenlabs.io/*',
+      'https://grok.com/*',
     ],
     name: '__MSG_extension_name__',
     optional_host_permissions: [
