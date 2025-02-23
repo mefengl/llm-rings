@@ -203,10 +203,23 @@ export default defineBackground(() => {
 
       if (details.url.includes('grok.com/rest/rate-limits')) {
         try {
-          const response = await fetch(details.url)
-          const data: GrokRateLimitResponse = await response.json()
           const requestBody = JSON.parse(details.requestBody?.raw?.[0]?.bytes || '{}')
           const type = requestBody.requestKind as keyof GrokRateLimit
+
+          const response = await fetch(details.url, {
+            body: JSON.stringify({
+              modelName: 'grok-3',
+              requestKind: type || 'DEFAULT',
+            }),
+            headers: {
+              'accept': '*/*',
+              'content-type': 'application/json',
+              'origin': 'https://grok.com',
+              'referer': details.referer || 'https://grok.com',
+            },
+            method: 'POST',
+          })
+          const data: GrokRateLimitResponse = await response.json()
 
           // Get existing limits
           const existingLimits = await storage.getItem<GrokRateLimit>('local:grokLimit') || {}
