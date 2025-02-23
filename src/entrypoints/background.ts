@@ -81,6 +81,33 @@ interface RequestHeader {
   value: string
 }
 
+interface GrokRateLimitResponse {
+  remainingQueries: number
+  waitTimeSeconds?: number
+  windowSizeSeconds: number
+}
+
+interface GrokRateLimit {
+  DEEPSEARCH?: {
+    lastUpdate: number
+    remainingQueries: number
+    waitTimeSeconds?: number
+    windowSizeSeconds: number
+  }
+  DEFAULT?: {
+    lastUpdate: number
+    remainingQueries: number
+    waitTimeSeconds?: number
+    windowSizeSeconds: number
+  }
+  REASONING?: {
+    lastUpdate: number
+    remainingQueries: number
+    waitTimeSeconds?: number
+    windowSizeSeconds: number
+  }
+}
+
 export default defineBackground(() => {
   // Add permission toggle
   addPermissionToggle()
@@ -173,6 +200,30 @@ export default defineBackground(() => {
           console.error('Error fetching custom AI limit:', error)
         }
       }
+
+      if (details.url.includes('grok.com/rest/rate-limits')) {
+        try {
+          const response = await fetch(details.url)
+          const data: GrokRateLimitResponse = await response.json()
+          const requestBody = JSON.parse(details.requestBody?.raw?.[0]?.bytes || '{}')
+          const type = requestBody.requestKind as keyof GrokRateLimit
+
+          // Get existing limits
+          const existingLimits = await storage.getItem<GrokRateLimit>('local:grokLimit') || {}
+
+          // Update only the specific type
+          await storage.setItem('local:grokLimit', {
+            ...existingLimits,
+            [type]: {
+              ...data,
+              lastUpdate: now,
+            },
+          })
+        }
+        catch (error) {
+          console.error('Error fetching grok.com limit:', error)
+        }
+      }
     }, 2000),
     {
       types: ['xmlhttprequest'],
@@ -181,6 +232,7 @@ export default defineBackground(() => {
         'https://bolt.new/api/rate-limits*',
         'https://api.recraft.ai/users/me',
         'https://api.us.elevenlabs.io/v1/workspace',
+        'https://grok.com/rest/rate-limits*',
         '*://*/backend-api/usage*',
       ],
     },

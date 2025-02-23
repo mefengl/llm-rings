@@ -56,6 +56,27 @@ interface CustomAILimit {
   period: string
 }
 
+interface GrokRateLimit {
+  DEEPSEARCH?: {
+    lastUpdate: number
+    remainingQueries: number
+    waitTimeSeconds?: number
+    windowSizeSeconds: number
+  }
+  DEFAULT?: {
+    lastUpdate: number
+    remainingQueries: number
+    waitTimeSeconds?: number
+    windowSizeSeconds: number
+  }
+  REASONING?: {
+    lastUpdate: number
+    remainingQueries: number
+    waitTimeSeconds?: number
+    windowSizeSeconds: number
+  }
+}
+
 function formatRelativeTime(timestamp: number) {
   const diff = Date.now() - timestamp
   const minutes = Math.floor(diff / 60000)
@@ -112,6 +133,7 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 const SERVICE_URLS = {
   'Bolt.new': 'https://bolt.new',
   'ElevenLabs': 'https://elevenlabs.io/app/sign-up',
+  'Grok': 'https://grok.com',
   'Recraft.ai': 'https://recraft.ai',
   'V0.dev': 'https://v0.dev/chat',
 } as const
@@ -165,10 +187,92 @@ function App() {
   const recraftData = useStorage<RecraftLimit>('local:recraftLimit')
   const elevenLabsData = useStorage<ElevenLabsLimit>('local:elevenLabsLimit')
   const customAIData = useStorage<CustomAILimit>('local:customAILimit')
+  const grokData = useStorage<GrokRateLimit>('local:grokLimit')
 
   return (
     <div className="w-[300px] space-y-4 p-4">
       <div className="space-y-4">
+        <div className="space-y-4">
+          {grokData
+            ? (
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <h3 className="mb-4 flex items-center justify-between text-lg font-medium">
+                    Grok
+                    <a
+                      className="text-xs text-gray-400 hover:text-gray-600"
+                      href="https://grok.com"
+                      target="_blank"
+                      title="Visit Grok"
+                    >
+                      ↗️
+                    </a>
+                  </h3>
+                  <div className="space-y-4">
+                    {(['DEFAULT', 'DEEPSEARCH', 'REASONING'] as const).map((type) => {
+                      const data = grokData[type]
+                      if (!data)
+                        return null
+
+                      const isStale = isDataStale(data.lastUpdate)
+                      return (
+                        <div className={`space-y-2 rounded-md bg-gray-50 p-3 ${isStale ? 'opacity-70' : ''}`} key={type}>
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{type}</span>
+                            {isStale && (
+                              <span className="text-xs text-amber-500" title="Data is older than 8 hours">⚠️ Stale</span>
+                            )}
+                          </div>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Updated</span>
+                              <span>{formatRelativeTime(data.lastUpdate)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Remaining</span>
+                              <span>
+                                {data.remainingQueries}
+                                /
+                                {type === 'DEEPSEARCH' ? 5 : 20}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Window</span>
+                              <span>
+                                {data.windowSizeSeconds / 3600}
+                                h
+                              </span>
+                            </div>
+                            {data.waitTimeSeconds && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Wait Time</span>
+                                <span>
+                                  {Math.round(data.waitTimeSeconds / 60)}
+                                  m
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <ProgressBar
+                            max={type === 'DEEPSEARCH' ? 5 : 20}
+                            value={data.remainingQueries}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            : (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Grok</h3>
+                  <p className="text-sm text-gray-500">No usage data available yet</p>
+                  <Button asChild className="w-full" variant="outline">
+                    <a href="https://grok.com" target="_blank">Try Grok</a>
+                  </Button>
+                </div>
+              )}
+        </div>
+
         <div className="space-y-4">
           {v0Data
             ? (
