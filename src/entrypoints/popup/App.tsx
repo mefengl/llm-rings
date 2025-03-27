@@ -188,7 +188,7 @@ function App() {
   }
 
   return (
-    <div className="scrollbar-thin h-[400px] w-[600px] overflow-y-auto bg-slate-50/60 p-3 font-sans text-sm">
+    <div className="h-[400px] w-[600px] overflow-y-auto bg-slate-50/60 p-3 font-sans text-sm">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-slate-400">Services</span>
         <span className="text-xs text-slate-400">{new Date().toLocaleDateString()}</span>
