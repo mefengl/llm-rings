@@ -13,6 +13,7 @@ export default defineConfig({
       'https://elevenlabs.io/*',
       'https://api.us.elevenlabs.io/*',
       'https://grok.com/*',
+      'https://www.cursor.com/*',
     ],
     name: '__MSG_extension_name__',
     optional_host_permissions: [

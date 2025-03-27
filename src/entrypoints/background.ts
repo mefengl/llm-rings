@@ -46,6 +46,46 @@ interface BoltRateLimit {
   totalToday: number
 }
 
+interface CursorInvoice {
+  items: {
+    cents: number
+    description: string
+  }[]
+  pricingDescription: {
+    description: string
+    id: string
+  }
+}
+
+interface CursorUsage {
+  'gpt-3.5-turbo': {
+    maxRequestUsage: null | number
+    maxTokenUsage: null | number
+    numRequests: number
+    numRequestsTotal: number
+    numTokens: number
+  }
+  'gpt-4': {
+    maxRequestUsage: number
+    maxTokenUsage: null | number
+    numRequests: number
+    numRequestsTotal: number
+    numTokens: number
+  }
+  'gpt-4-32k': {
+    maxRequestUsage: number
+    maxTokenUsage: null | number
+    numRequests: number
+    numRequestsTotal: number
+    numTokens: number
+  }
+  'startOfMonth': string
+}
+
+interface CursorHardLimit {
+  hardLimit: number
+}
+
 interface RecraftUser {
   credits: number
   plan: {
@@ -237,6 +277,109 @@ export default defineBackground(() => {
           console.error('Error fetching grok.com limit:', error)
         }
       }
+
+      if (details.url.includes('cursor.com/api/dashboard/get-monthly-invoice')) {
+        try {
+          // Get current date to use for the request
+          const date = new Date()
+          const month = date.getMonth() + 1 // JavaScript months are 0-indexed
+          const year = date.getFullYear()
+
+          const response = await fetch(details.url, {
+            body: JSON.stringify({
+              includeUsageEvents: false,
+              month,
+              year,
+            }),
+            headers: {
+              'accept': '*/*',
+              'content-type': 'application/json',
+              'origin': 'https://www.cursor.com',
+              'referer': details.referer || 'https://www.cursor.com/settings',
+            },
+            method: 'POST',
+          })
+          const data: CursorInvoice = await response.json()
+
+          // Calculate total usage in cents
+          const totalCents = data.items.reduce((sum, item) => sum + item.cents, 0)
+
+          await storage.setItem('local:cursorUsage', {
+            items: data.items,
+            lastUpdate: now,
+            pricing: data.pricingDescription.description,
+            totalCents,
+          })
+        }
+        catch (error) {
+          console.error('Error fetching cursor.com usage data:', error)
+        }
+      }
+
+      if (details.url.includes('cursor.com/api/usage')) {
+        try {
+          const response = await fetch(details.url, {
+            headers: {
+              'accept': '*/*',
+              'content-type': 'application/json',
+              'origin': 'https://www.cursor.com',
+              'referer': details.referer || 'https://www.cursor.com/settings',
+            },
+            method: 'GET',
+          })
+          const data: CursorUsage = await response.json()
+
+          // Store model usage statistics
+          await storage.setItem('local:cursorModelUsage', {
+            lastUpdate: now,
+            models: {
+              'gpt-3.5-turbo': {
+                tokens: data['gpt-3.5-turbo'].numTokens,
+                total: data['gpt-3.5-turbo'].maxRequestUsage || 0,
+                used: data['gpt-3.5-turbo'].numRequests,
+              },
+              'gpt-4': {
+                tokens: data['gpt-4'].numTokens,
+                total: data['gpt-4'].maxRequestUsage,
+                used: data['gpt-4'].numRequests,
+              },
+              'gpt-4-32k': {
+                tokens: data['gpt-4-32k'].numTokens,
+                total: data['gpt-4-32k'].maxRequestUsage,
+                used: data['gpt-4-32k'].numRequests,
+              },
+            },
+            startOfMonth: data.startOfMonth,
+          })
+        }
+        catch (error) {
+          console.error('Error fetching cursor.com model usage data:', error)
+        }
+      }
+
+      if (details.url.includes('cursor.com/api/dashboard/get-hard-limit')) {
+        try {
+          const response = await fetch(details.url, {
+            body: JSON.stringify({}),
+            headers: {
+              'accept': '*/*',
+              'content-type': 'application/json',
+              'origin': 'https://www.cursor.com',
+              'referer': details.referer || 'https://www.cursor.com/settings',
+            },
+            method: 'POST',
+          })
+          const data: CursorHardLimit = await response.json()
+
+          await storage.setItem('local:cursorHardLimit', {
+            hardLimit: data.hardLimit,
+            lastUpdate: now,
+          })
+        }
+        catch (error) {
+          console.error('Error fetching cursor.com hard limit data:', error)
+        }
+      }
     }, 2000),
     {
       types: ['xmlhttprequest'],
@@ -247,6 +390,9 @@ export default defineBackground(() => {
         'https://api.us.elevenlabs.io/v1/workspace',
         'https://grok.com/rest/rate-limits*',
         '*://*/backend-api/usage*',
+        'https://www.cursor.com/api/dashboard/get-monthly-invoice*',
+        'https://www.cursor.com/api/usage*',
+        'https://www.cursor.com/api/dashboard/get-hard-limit*',
       ],
     },
     ['requestHeaders', 'extraHeaders'],

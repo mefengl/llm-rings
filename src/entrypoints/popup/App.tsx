@@ -77,6 +77,43 @@ interface GrokRateLimit {
   }
 }
 
+interface CursorUsage {
+  lastUpdate: number
+  models: {
+    'gpt-3.5-turbo': {
+      tokens: number
+      total: number
+      used: number
+    }
+    'gpt-4': {
+      tokens: number
+      total: number
+      used: number
+    }
+    'gpt-4-32k': {
+      tokens: number
+      total: number
+      used: number
+    }
+  }
+  startOfMonth: string
+}
+
+interface CursorInvoice {
+  items: {
+    cents: number
+    description: string
+  }[]
+  lastUpdate: number
+  pricing: string
+  totalCents: number
+}
+
+interface CursorHardLimit {
+  hardLimit: number
+  lastUpdate: number
+}
+
 function formatRelativeTime(timestamp: number) {
   const diff = Date.now() - timestamp
   const minutes = Math.floor(diff / 60000)
@@ -132,6 +169,7 @@ function ProgressBar({ max, value }: { max: number, value: number }) {
 
 const SERVICE_URLS = {
   'Bolt.new': 'https://bolt.new',
+  'Cursor': 'https://www.cursor.com/settings',
   'ElevenLabs': 'https://elevenlabs.io/app/sign-up',
   'Grok': 'https://grok.com',
   'Recraft.ai': 'https://recraft.ai',
@@ -188,6 +226,14 @@ function App() {
   const elevenLabsData = useStorage<ElevenLabsLimit>('local:elevenLabsLimit')
   const customAIData = useStorage<CustomAILimit>('local:customAILimit')
   const grokData = useStorage<GrokRateLimit>('local:grokLimit')
+  const cursorUsageData = useStorage<CursorUsage>('local:cursorModelUsage')
+  const cursorInvoiceData = useStorage<CursorInvoice>('local:cursorUsage')
+  const cursorHardLimitData = useStorage<CursorHardLimit>('local:cursorHardLimit')
+
+  // Format cents to dollar amount
+  const formatDollars = (cents: number) => {
+    return `$${(cents / 100).toFixed(2)}`
+  }
 
   return (
     <div className="w-[300px] space-y-4 p-4">
@@ -413,6 +459,105 @@ function App() {
                 </>
               )
             : null}
+        </div>
+
+        <div className="space-y-4">
+          {(cursorUsageData || cursorInvoiceData || cursorHardLimitData) ? (
+            <div className="rounded-lg border border-gray-200 p-4">
+              <h3 className="mb-4 flex items-center justify-between text-lg font-medium">
+                Cursor
+                <a
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                  href="https://www.cursor.com/settings"
+                  target="_blank"
+                  title="Visit Cursor Settings"
+                >
+                  ↗️
+                </a>
+              </h3>
+
+              {/* Premium model usage */}
+              {cursorUsageData && (
+                <div className="mb-4 space-y-2 rounded-md bg-gray-50 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Premium Models</span>
+                    {isDataStale(cursorUsageData.lastUpdate) && (
+                      <span className="text-xs text-amber-500" title="Data is older than 8 hours">⚠️ Stale</span>
+                    )}
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Updated</span>
+                      <span>{formatRelativeTime(cursorUsageData.lastUpdate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Used</span>
+                      <span>
+                        {cursorUsageData.models['gpt-4'].used}
+                        /
+                        {cursorUsageData.models['gpt-4'].total}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Tokens</span>
+                      <span>{cursorUsageData.models['gpt-4'].tokens.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Billing Start</span>
+                      <span>{new Date(cursorUsageData.startOfMonth).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  {cursorUsageData.models['gpt-4'].total > 0 && (
+                    <ProgressBar
+                      max={cursorUsageData.models['gpt-4'].total}
+                      value={cursorUsageData.models['gpt-4'].total - cursorUsageData.models['gpt-4'].used}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Billing usage vs hard limit */}
+              {cursorInvoiceData && cursorHardLimitData && (
+                <div className="space-y-2 rounded-md bg-gray-50 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Billing</span>
+                    {(isDataStale(cursorInvoiceData.lastUpdate) || isDataStale(cursorHardLimitData.lastUpdate)) && (
+                      <span className="text-xs text-amber-500" title="Data is older than 8 hours">⚠️ Stale</span>
+                    )}
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Current Usage</span>
+                      <span>{formatDollars(cursorInvoiceData.totalCents)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Hard Limit</span>
+                      <span>
+                        $
+                        {cursorHardLimitData.hardLimit}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Updated</span>
+                      <span>{formatRelativeTime(cursorInvoiceData.lastUpdate)}</span>
+                    </div>
+                  </div>
+                  <ProgressBar
+                    max={cursorHardLimitData.hardLimit * 100} // Convert to cents
+                    value={(cursorHardLimitData.hardLimit * 100) - cursorInvoiceData.totalCents}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium">Cursor</h3>
+              <p className="text-sm text-gray-500">No usage data available yet</p>
+              <Button asChild className="w-full" variant="outline">
+                <a href="https://www.cursor.com" target="_blank">Try Cursor</a>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
