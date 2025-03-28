@@ -57,21 +57,31 @@ interface CustomAILimit {
 }
 
 interface GrokRateLimit {
+  DEEPERSEARCH?: {
+    lastUpdate: number
+    remainingQueries: number
+    totalQueries?: number
+    waitTimeSeconds?: number
+    windowSizeSeconds: number
+  }
   DEEPSEARCH?: {
     lastUpdate: number
     remainingQueries: number
+    totalQueries?: number
     waitTimeSeconds?: number
     windowSizeSeconds: number
   }
   DEFAULT?: {
     lastUpdate: number
     remainingQueries: number
+    totalQueries?: number
     waitTimeSeconds?: number
     windowSizeSeconds: number
   }
   REASONING?: {
     lastUpdate: number
     remainingQueries: number
+    totalQueries?: number
     waitTimeSeconds?: number
     windowSizeSeconds: number
   }
@@ -235,6 +245,7 @@ function App() {
       lastUpdate: Math.max(
         grokData.DEFAULT?.lastUpdate || 0,
         grokData.DEEPSEARCH?.lastUpdate || 0,
+        grokData.DEEPERSEARCH?.lastUpdate || 0,
         grokData.REASONING?.lastUpdate || 0,
       ),
       name: 'Grok',
@@ -318,11 +329,16 @@ function App() {
               </tr>
             </thead>
             <tbody>
-              {(['DEFAULT', 'DEEPSEARCH', 'REASONING'] as const).map((type) => {
+              {(['DEFAULT', 'DEEPSEARCH', 'DEEPERSEARCH', 'REASONING'] as const).map((type) => {
                 const data = grokData[type]
                 if (!data)
                   return null
                 const isStale = isDataStale(data.lastUpdate)
+
+                // Default max values for different types
+                const maxQueries = data.totalQueries || (
+                  type === 'DEEPSEARCH' || type === 'DEEPERSEARCH' ? 5 : 20
+                )
 
                 return (
                   <tr className={`border-b border-slate-100 ${isStale ? 'text-slate-400' : 'text-slate-700'}`} key={type}>
@@ -330,7 +346,7 @@ function App() {
                     <td className="py-1.5">
                       {data.remainingQueries}
                       /
-                      {type === 'DEEPSEARCH' ? 5 : 20}
+                      {maxQueries}
                     </td>
                     <td className="py-1.5">
                       {data.windowSizeSeconds / 3600}
@@ -341,11 +357,11 @@ function App() {
                       <div className="flex items-center space-x-1">
                         <ProgressBar
                           compact
-                          max={type === 'DEEPSEARCH' ? 5 : 20}
+                          max={maxQueries}
                           value={data.remainingQueries}
                         />
                         <span className="text-xs text-slate-500">
-                          {Math.round((data.remainingQueries / (type === 'DEEPSEARCH' ? 5 : 20)) * 100)}
+                          {Math.round((data.remainingQueries / maxQueries) * 100)}
                           %
                         </span>
                       </div>
@@ -560,33 +576,45 @@ function App() {
                   )
                 }
 
-                if (service.name === 'Grok' && grokData && grokData.DEFAULT) {
+                if (service.name === 'Grok' && grokData) {
+                  // Find the first available data type to display in the general table
+                  const dataType = ['DEEPERSEARCH', 'DEFAULT', 'DEEPSEARCH', 'REASONING'].find(type => grokData[type as keyof GrokRateLimit])
+                  const data = dataType ? grokData[dataType as keyof GrokRateLimit] : null
+
+                  if (!data)
+                    return null
+
+                  const maxQueries = data.totalQueries || (
+                    dataType === 'DEEPSEARCH' || dataType === 'DEEPERSEARCH' ? 5 : 20
+                  )
+
                   return (
                     <tr className="border-b border-slate-100" key={service.name}>
                       <td className="py-1.5 pl-1">
                         <div className="flex items-center">
                           <span className="text-slate-700">{service.name}</span>
-                          {isDataStale(grokData.DEFAULT.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
+                          {isDataStale(data.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
                         </div>
                       </td>
                       <td className="py-1.5">
-                        {grokData.DEFAULT.remainingQueries}
-                        /20
+                        {data.remainingQueries}
+                        /
+                        {maxQueries}
                       </td>
                       <td className="py-1.5">
-                        {grokData.DEFAULT.windowSizeSeconds / 3600}
+                        {data.windowSizeSeconds / 3600}
                         h
                       </td>
-                      <td className="py-1.5">{grokData.DEFAULT.lastUpdate ? formatRelativeTime(grokData.DEFAULT.lastUpdate) : 'N/A'}</td>
+                      <td className="py-1.5">{data.lastUpdate ? formatRelativeTime(data.lastUpdate) : 'N/A'}</td>
                       <td className="py-1.5">
                         <div className="flex items-center space-x-1">
                           <ProgressBar
                             compact
-                            max={20}
-                            value={grokData.DEFAULT.remainingQueries}
+                            max={maxQueries}
+                            value={data.remainingQueries}
                           />
                           <span className="text-xs text-slate-500">
-                            {Math.round((grokData.DEFAULT.remainingQueries / 20) * 100)}
+                            {Math.round((data.remainingQueries / maxQueries) * 100)}
                             %
                           </span>
                         </div>
@@ -669,7 +697,7 @@ function App() {
             <span className="ml-1.5 rounded-sm bg-blue-50 px-1 py-0.5 text-xs text-blue-600">
               {isDataStale(cursorUsageData?.lastUpdate || cursorInvoiceData?.lastUpdate || 0) ? 'Stale' : 'Active'}
             </span>
-            <a className="ml-auto text-xs text-slate-400 hover:text-slate-600" href="https://www.cursor.com/settings" target="_blank">Visit →</a>
+            <a className="ml-auto text-xs text-slate-400 hover:text-slate-600" href={SERVICE_URLS.Cursor} target="_blank">Visit →</a>
           </div>
 
           {cursorUsageData && (
