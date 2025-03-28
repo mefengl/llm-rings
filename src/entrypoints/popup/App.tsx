@@ -379,7 +379,7 @@ function App() {
                       <td className="py-1.5 pl-1">
                         <div className="flex items-center">
                           <span className="text-slate-700">{service.name}</span>
-                          {isDataStale(v0Data.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                          {isDataStale(v0Data.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
                         </div>
                       </td>
                       <td className="py-1.5">
@@ -416,7 +416,7 @@ function App() {
                       <td className="py-1.5 pl-1">
                         <div className="flex items-center">
                           <span className="text-slate-700">{service.name}</span>
-                          {isDataStale(boltData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                          {isDataStale(boltData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
                         </div>
                       </td>
                       <td className="py-1.5">
@@ -461,7 +461,7 @@ function App() {
                       <td className="py-1.5 pl-1">
                         <div className="flex items-center">
                           <span className="text-slate-700">{service.name}</span>
-                          {isDataStale(recraftData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                          {isDataStale(recraftData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
                         </div>
                       </td>
                       <td className="py-1.5">
@@ -496,7 +496,7 @@ function App() {
                       <td className="py-1.5 pl-1">
                         <div className="flex items-center">
                           <span className="text-slate-700">{service.name}</span>
-                          {isDataStale(elevenLabsData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                          {isDataStale(elevenLabsData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
                         </div>
                       </td>
                       <td className="py-1.5">
@@ -533,7 +533,7 @@ function App() {
                       <td className="py-1.5 pl-1">
                         <div className="flex items-center">
                           <span className="text-slate-700">{service.name}</span>
-                          {isDataStale(customAIData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                          {isDataStale(customAIData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
                         </div>
                       </td>
                       <td className="py-1.5">
@@ -566,7 +566,7 @@ function App() {
                       <td className="py-1.5 pl-1">
                         <div className="flex items-center">
                           <span className="text-slate-700">{service.name}</span>
-                          {isDataStale(grokData.DEFAULT.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                          {isDataStale(grokData.DEFAULT.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
                         </div>
                       </td>
                       <td className="py-1.5">
@@ -601,7 +601,7 @@ function App() {
                       <td className="py-1.5 pl-1">
                         <div className="flex items-center">
                           <span className="text-slate-700">{service.name}</span>
-                          {isDataStale(cursorUsageData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                          {isDataStale(cursorUsageData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
                         </div>
                       </td>
                       <td className="py-1.5">
@@ -636,7 +636,7 @@ function App() {
                     <td className="py-1.5 pl-1">
                       <div className="flex items-center">
                         <span className="text-slate-700">{service.name}</span>
-                        {isDataStale(service.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                        {isDataStale(service.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
                       </div>
                     </td>
                     <td className="py-1.5">
