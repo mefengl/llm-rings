@@ -372,7 +372,6 @@ function App() {
           </thead>
           <tbody>
             {sortedServices
-              .filter(service => service.name !== 'Grok' && service.name !== 'Cursor')
               .map((service) => {
                 if (service.name === 'V0.dev' && v0Data) {
                   return (
@@ -550,6 +549,76 @@ function App() {
                             compact
                             max={customAIData.characterLimit}
                             value={customAIData.characterLimit - customAIData.characterCount}
+                          />
+                          <span className="text-xs text-slate-500">
+                            {service.usagePercentage}
+                            %
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                }
+
+                if (service.name === 'Grok' && grokData && grokData.DEFAULT) {
+                  return (
+                    <tr className="border-b border-slate-100" key={service.name}>
+                      <td className="py-1.5 pl-1">
+                        <div className="flex items-center">
+                          <span className="text-slate-700">{service.name}</span>
+                          {isDataStale(grokData.DEFAULT.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                        </div>
+                      </td>
+                      <td className="py-1.5">
+                        {grokData.DEFAULT.remainingQueries}
+                        /20
+                      </td>
+                      <td className="py-1.5">
+                        {grokData.DEFAULT.windowSizeSeconds / 3600}
+                        h
+                      </td>
+                      <td className="py-1.5">{grokData.DEFAULT.lastUpdate ? formatRelativeTime(grokData.DEFAULT.lastUpdate) : 'N/A'}</td>
+                      <td className="py-1.5">
+                        <div className="flex items-center space-x-1">
+                          <ProgressBar
+                            compact
+                            max={20}
+                            value={grokData.DEFAULT.remainingQueries}
+                          />
+                          <span className="text-xs text-slate-500">
+                            {Math.round((grokData.DEFAULT.remainingQueries / 20) * 100)}
+                            %
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                }
+
+                if (service.name === 'Cursor' && cursorUsageData) {
+                  return (
+                    <tr className="border-b border-slate-100" key={service.name}>
+                      <td className="py-1.5 pl-1">
+                        <div className="flex items-center">
+                          <span className="text-slate-700">{service.name}</span>
+                          {isDataStale(cursorUsageData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                        </div>
+                      </td>
+                      <td className="py-1.5">
+                        {cursorUsageData.models['gpt-4'].used}
+                        /
+                        {cursorUsageData.models['gpt-4'].total}
+                      </td>
+                      <td className="py-1.5" title={new Date(cursorUsageData.startOfMonth).toLocaleString()}>
+                        Monthly
+                      </td>
+                      <td className="py-1.5">{cursorUsageData.lastUpdate ? formatRelativeTime(cursorUsageData.lastUpdate) : 'N/A'}</td>
+                      <td className="py-1.5">
+                        <div className="flex items-center space-x-1">
+                          <ProgressBar
+                            compact
+                            max={cursorUsageData.models['gpt-4'].total}
+                            value={cursorUsageData.models['gpt-4'].total - cursorUsageData.models['gpt-4'].used}
                           />
                           <span className="text-xs text-slate-500">
                             {service.usagePercentage}
