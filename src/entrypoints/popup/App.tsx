@@ -182,24 +182,128 @@ function App() {
   const cursorInvoiceData = useStorage<CursorInvoice>('local:cursorUsage')
   const cursorHardLimitData = useStorage<CursorHardLimit>('local:cursorHardLimit')
 
+  // Add sort type and state
+  type SortType = 'lastUpdated' | 'name' | 'usage'
+  const [sortType, setSortType] = useState<SortType>('lastUpdated')
+
   // Format cents to dollar amount
   const formatDollars = (cents: number) => {
     return `$${(cents / 100).toFixed(2)}`
   }
 
+  // Create a unified data structure for all services
+  interface ServiceData {
+    data: any
+    lastUpdate: number
+    name: string
+    usagePercentage: number
+  }
+
+  const servicesData = [
+    v0Data && {
+      data: v0Data,
+      lastUpdate: v0Data.lastUpdate || 0,
+      name: 'V0.dev',
+      usagePercentage: Math.round((v0Data.remaining / v0Data.limit) * 100),
+    },
+    boltData && {
+      data: boltData,
+      lastUpdate: boltData.lastUpdate || 0,
+      name: 'Bolt.new',
+      usagePercentage: Math.round(((boltData.maxPerDay - boltData.totalToday) / boltData.maxPerDay) * 100),
+    },
+    recraftData && {
+      data: recraftData,
+      lastUpdate: recraftData.lastUpdate || 0,
+      name: 'Recraft.ai',
+      usagePercentage: Math.round((recraftData.remaining / recraftData.total) * 100),
+    },
+    elevenLabsData && {
+      data: elevenLabsData,
+      lastUpdate: elevenLabsData.lastUpdate || 0,
+      name: 'ElevenLabs',
+      usagePercentage: Math.round(((elevenLabsData.characterLimit - elevenLabsData.characterCount) / elevenLabsData.characterLimit) * 100),
+    },
+    customAIData && {
+      data: customAIData,
+      lastUpdate: customAIData.lastUpdate || 0,
+      name: customAIData.domainName,
+      usagePercentage: Math.round(((customAIData.characterLimit - customAIData.characterCount) / customAIData.characterLimit) * 100),
+    },
+    grokData && {
+      data: grokData,
+      lastUpdate: Math.max(
+        grokData.DEFAULT?.lastUpdate || 0,
+        grokData.DEEPSEARCH?.lastUpdate || 0,
+        grokData.REASONING?.lastUpdate || 0,
+      ),
+      name: 'Grok',
+      usagePercentage: grokData.DEFAULT ? Math.round((grokData.DEFAULT.remainingQueries / 20) * 100) : 0,
+    },
+    (cursorUsageData || cursorInvoiceData) && {
+      data: { cursorHardLimitData, cursorInvoiceData, cursorUsageData },
+      lastUpdate: Math.max(
+        cursorUsageData?.lastUpdate || 0,
+        cursorInvoiceData?.lastUpdate || 0,
+      ),
+      name: 'Cursor',
+      usagePercentage: cursorUsageData
+        ? Math.round(((cursorUsageData.models['gpt-4'].total - cursorUsageData.models['gpt-4'].used) / cursorUsageData.models['gpt-4'].total) * 100)
+        : 0,
+    },
+  ].filter(Boolean) as ServiceData[]
+
+  // Sort services based on selected sort type
+  const sortedServices = [...servicesData].sort((a, b) => {
+    if (sortType === 'lastUpdated') {
+      return b.lastUpdate - a.lastUpdate // Most recent first
+    }
+    else if (sortType === 'name') {
+      return a.name.localeCompare(b.name)
+    }
+    else if (sortType === 'usage') {
+      return b.usagePercentage - a.usagePercentage // Higher percentage first
+    }
+    return 0
+  })
+
   return (
     <div className="h-[400px] w-[600px] overflow-y-auto bg-slate-50/60 p-3 font-sans text-sm">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-slate-400">Services</span>
-        <span className="text-xs text-slate-400">{new Date().toLocaleDateString()}</span>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border border-slate-200 bg-white text-xs">
+            <button
+              className={`px-2 py-1 ${sortType === 'lastUpdated' ? 'bg-slate-100 font-medium' : ''}`}
+              onClick={() => setSortType('lastUpdated')}
+            >
+              Recent
+            </button>
+            <button
+              className={`px-2 py-1 ${sortType === 'name' ? 'bg-slate-100 font-medium' : ''}`}
+              onClick={() => setSortType('name')}
+            >
+              Name
+            </button>
+            <button
+              className={`px-2 py-1 ${sortType === 'usage' ? 'bg-slate-100 font-medium' : ''}`}
+              onClick={() => setSortType('usage')}
+            >
+              Usage
+            </button>
+          </div>
+          <span className="text-xs text-slate-400">{new Date().toLocaleDateString()}</span>
+        </div>
       </div>
 
-      {/* Grok Section */}
-      {grokData && (
+      {/* Display sorted Grok first if it exists in sorted services */}
+      {sortedServices.some(service => service.name === 'Grok') && grokData && (
         <div className="mb-4">
           <div className="mb-1 flex items-center">
             <span className="text-sm font-medium text-slate-600">Grok</span>
-            <span className="ml-1.5 rounded-sm bg-blue-50 px-1 py-0.5 text-xs text-blue-600">{isDataStale(grokData.DEFAULT?.lastUpdate || 0) ? 'Stale' : 'Active'}</span>
+            <span className="ml-1.5 rounded-sm bg-blue-50 px-1 py-0.5 text-xs text-blue-600">
+              {isDataStale(grokData.DEFAULT?.lastUpdate || 0) ? 'Stale' : 'Active'}
+            </span>
             <a className="ml-auto text-xs text-slate-400 hover:text-slate-600" href="https://grok.com" target="_blank">Visit →</a>
           </div>
 
@@ -254,7 +358,7 @@ function App() {
         </div>
       )}
 
-      {/* General Services Table */}
+      {/* General Services Table with sorted services */}
       <div className="mb-4">
         <table className="w-full text-xs">
           <thead>
@@ -267,187 +371,229 @@ function App() {
             </tr>
           </thead>
           <tbody>
-            {v0Data && (
-              <tr className="border-b border-slate-100">
-                <td className="py-1.5 pl-1">
-                  <div className="flex items-center">
-                    <span className="text-slate-700">V0.dev</span>
-                    {isDataStale(v0Data.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
-                  </div>
-                </td>
-                <td className="py-1.5">
-                  {v0Data.limit - v0Data.remaining}
-                  /
-                  {v0Data.limit}
-                </td>
-                <td className="py-1.5" title={new Date(v0Data.reset).toLocaleString()}>
-                  Reset:
-                  {' '}
-                  {new Date(v0Data.reset).toLocaleDateString()}
-                </td>
-                <td className="py-1.5">{v0Data.lastUpdate ? formatRelativeTime(v0Data.lastUpdate) : 'N/A'}</td>
-                <td className="py-1.5">
-                  <div className="flex items-center space-x-1">
-                    <ProgressBar
-                      compact
-                      max={v0Data.limit}
-                      value={v0Data.remaining}
-                    />
-                    <span className="text-xs text-slate-500">
-                      {Math.round((v0Data.remaining / v0Data.limit) * 100)}
-                      %
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            )}
+            {sortedServices
+              .filter(service => service.name !== 'Grok' && service.name !== 'Cursor')
+              .map((service) => {
+                if (service.name === 'V0.dev' && v0Data) {
+                  return (
+                    <tr className="border-b border-slate-100" key={service.name}>
+                      <td className="py-1.5 pl-1">
+                        <div className="flex items-center">
+                          <span className="text-slate-700">{service.name}</span>
+                          {isDataStale(v0Data.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                        </div>
+                      </td>
+                      <td className="py-1.5">
+                        {v0Data.limit - v0Data.remaining}
+                        /
+                        {v0Data.limit}
+                      </td>
+                      <td className="py-1.5" title={new Date(v0Data.reset).toLocaleString()}>
+                        Reset:
+                        {' '}
+                        {new Date(v0Data.reset).toLocaleDateString()}
+                      </td>
+                      <td className="py-1.5">{v0Data.lastUpdate ? formatRelativeTime(v0Data.lastUpdate) : 'N/A'}</td>
+                      <td className="py-1.5">
+                        <div className="flex items-center space-x-1">
+                          <ProgressBar
+                            compact
+                            max={v0Data.limit}
+                            value={v0Data.remaining}
+                          />
+                          <span className="text-xs text-slate-500">
+                            {service.usagePercentage}
+                            %
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                }
 
-            {boltData && (
-              <tr className="border-b border-slate-100">
-                <td className="py-1.5 pl-1">
-                  <div className="flex items-center">
-                    <span className="text-slate-700">Bolt.new</span>
-                    {isDataStale(boltData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
-                  </div>
-                </td>
-                <td className="py-1.5">
-                  <div>
-                    <div>
-                      Day:
-                      {boltData.totalToday}
-                      /
-                      {boltData.maxPerDay}
-                    </div>
-                    <div className="text-[10px] text-slate-400">
-                      Month:
-                      {boltData.totalThisMonth}
-                      /
-                      {boltData.maxPerMonth}
-                    </div>
-                  </div>
-                </td>
-                <td className="py-1.5">Daily</td>
-                <td className="py-1.5">{boltData.lastUpdate ? formatRelativeTime(boltData.lastUpdate) : 'N/A'}</td>
-                <td className="py-1.5">
-                  <div className="flex items-center space-x-1">
-                    <ProgressBar
-                      compact
-                      max={boltData.maxPerDay}
-                      value={boltData.maxPerDay - boltData.totalToday}
-                    />
-                    <span className="text-xs text-slate-500">
-                      {Math.round(((boltData.maxPerDay - boltData.totalToday) / boltData.maxPerDay) * 100)}
-                      %
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            )}
+                if (service.name === 'Bolt.new' && boltData) {
+                  return (
+                    <tr className="border-b border-slate-100" key={service.name}>
+                      <td className="py-1.5 pl-1">
+                        <div className="flex items-center">
+                          <span className="text-slate-700">{service.name}</span>
+                          {isDataStale(boltData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                        </div>
+                      </td>
+                      <td className="py-1.5">
+                        <div>
+                          <div>
+                            Day:
+                            {boltData.totalToday}
+                            /
+                            {boltData.maxPerDay}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            Month:
+                            {' '}
+                            {boltData.totalThisMonth}
+                            /
+                            {boltData.maxPerMonth}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-1.5">Daily</td>
+                      <td className="py-1.5">{boltData.lastUpdate ? formatRelativeTime(boltData.lastUpdate) : 'N/A'}</td>
+                      <td className="py-1.5">
+                        <div className="flex items-center space-x-1">
+                          <ProgressBar
+                            compact
+                            max={boltData.maxPerDay}
+                            value={boltData.maxPerDay - boltData.totalToday}
+                          />
+                          <span className="text-xs text-slate-500">
+                            {service.usagePercentage}
+                            %
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                }
 
-            {recraftData && (
-              <tr className="border-b border-slate-100">
-                <td className="py-1.5 pl-1">
-                  <div className="flex items-center">
-                    <span className="text-slate-700">Recraft.ai</span>
-                    {isDataStale(recraftData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
-                  </div>
-                </td>
-                <td className="py-1.5">
-                  {recraftData.total - recraftData.remaining}
-                  /
-                  {recraftData.total}
-                </td>
-                <td className="py-1.5" title={new Date(recraftData.resetTime).toLocaleString()}>
-                  {recraftData.period}
-                </td>
-                <td className="py-1.5">{recraftData.lastUpdate ? formatRelativeTime(recraftData.lastUpdate) : 'N/A'}</td>
-                <td className="py-1.5">
-                  <div className="flex items-center space-x-1">
-                    <ProgressBar
-                      compact
-                      max={recraftData.total}
-                      value={recraftData.remaining}
-                    />
-                    <span className="text-xs text-slate-500">
-                      {Math.round((recraftData.remaining / recraftData.total) * 100)}
-                      %
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            )}
+                if (service.name === 'Recraft.ai' && recraftData) {
+                  return (
+                    <tr className="border-b border-slate-100" key={service.name}>
+                      <td className="py-1.5 pl-1">
+                        <div className="flex items-center">
+                          <span className="text-slate-700">{service.name}</span>
+                          {isDataStale(recraftData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                        </div>
+                      </td>
+                      <td className="py-1.5">
+                        {recraftData.total - recraftData.remaining}
+                        /
+                        {recraftData.total}
+                      </td>
+                      <td className="py-1.5" title={new Date(recraftData.resetTime).toLocaleString()}>
+                        {recraftData.period}
+                      </td>
+                      <td className="py-1.5">{recraftData.lastUpdate ? formatRelativeTime(recraftData.lastUpdate) : 'N/A'}</td>
+                      <td className="py-1.5">
+                        <div className="flex items-center space-x-1">
+                          <ProgressBar
+                            compact
+                            max={recraftData.total}
+                            value={recraftData.remaining}
+                          />
+                          <span className="text-xs text-slate-500">
+                            {service.usagePercentage}
+                            %
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                }
 
-            {elevenLabsData && (
-              <tr className="border-b border-slate-100">
-                <td className="py-1.5 pl-1">
-                  <div className="flex items-center">
-                    <span className="text-slate-700">ElevenLabs</span>
-                    {isDataStale(elevenLabsData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
-                  </div>
-                </td>
-                <td className="py-1.5">
-                  {elevenLabsData.characterCount.toLocaleString()}
-                  /
-                  {elevenLabsData.characterLimit.toLocaleString()}
-                </td>
-                <td className="py-1.5" title={new Date(elevenLabsData.nextReset).toLocaleString()}>
-                  Reset:
-                  {' '}
-                  {new Date(elevenLabsData.nextReset).toLocaleDateString()}
-                </td>
-                <td className="py-1.5">{elevenLabsData.lastUpdate ? formatRelativeTime(elevenLabsData.lastUpdate) : 'N/A'}</td>
-                <td className="py-1.5">
-                  <div className="flex items-center space-x-1">
-                    <ProgressBar
-                      compact
-                      max={elevenLabsData.characterLimit}
-                      value={elevenLabsData.characterLimit - elevenLabsData.characterCount}
-                    />
-                    <span className="text-xs text-slate-500">
-                      {Math.round(((elevenLabsData.characterLimit - elevenLabsData.characterCount) / elevenLabsData.characterLimit) * 100)}
-                      %
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            )}
+                if (service.name === 'ElevenLabs' && elevenLabsData) {
+                  return (
+                    <tr className="border-b border-slate-100" key={service.name}>
+                      <td className="py-1.5 pl-1">
+                        <div className="flex items-center">
+                          <span className="text-slate-700">{service.name}</span>
+                          {isDataStale(elevenLabsData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                        </div>
+                      </td>
+                      <td className="py-1.5">
+                        {elevenLabsData.characterCount.toLocaleString()}
+                        /
+                        {elevenLabsData.characterLimit.toLocaleString()}
+                      </td>
+                      <td className="py-1.5" title={new Date(elevenLabsData.nextReset).toLocaleString()}>
+                        Reset:
+                        {' '}
+                        {new Date(elevenLabsData.nextReset).toLocaleDateString()}
+                      </td>
+                      <td className="py-1.5">{elevenLabsData.lastUpdate ? formatRelativeTime(elevenLabsData.lastUpdate) : 'N/A'}</td>
+                      <td className="py-1.5">
+                        <div className="flex items-center space-x-1">
+                          <ProgressBar
+                            compact
+                            max={elevenLabsData.characterLimit}
+                            value={elevenLabsData.characterLimit - elevenLabsData.characterCount}
+                          />
+                          <span className="text-xs text-slate-500">
+                            {service.usagePercentage}
+                            %
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                }
 
-            {customAIData && (
-              <tr className="border-b border-slate-100">
-                <td className="py-1.5 pl-1">
-                  <div className="flex items-center">
-                    <span className="text-slate-700">{customAIData.domainName}</span>
-                    {isDataStale(customAIData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
-                  </div>
-                </td>
-                <td className="py-1.5">
-                  {customAIData.characterCount}
-                  /
-                  {customAIData.characterLimit}
-                </td>
-                <td className="py-1.5">{customAIData.period}</td>
-                <td className="py-1.5">{customAIData.lastUpdate ? formatRelativeTime(customAIData.lastUpdate) : 'N/A'}</td>
-                <td className="py-1.5">
-                  <div className="flex items-center space-x-1">
-                    <ProgressBar
-                      compact
-                      max={customAIData.characterLimit}
-                      value={customAIData.characterLimit - customAIData.characterCount}
-                    />
-                    <span className="text-xs text-slate-500">
-                      {Math.round(((customAIData.characterLimit - customAIData.characterCount) / customAIData.characterLimit) * 100)}
+                if (customAIData && service.name === customAIData.domainName) {
+                  return (
+                    <tr className="border-b border-slate-100" key={service.name}>
+                      <td className="py-1.5 pl-1">
+                        <div className="flex items-center">
+                          <span className="text-slate-700">{service.name}</span>
+                          {isDataStale(customAIData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                        </div>
+                      </td>
+                      <td className="py-1.5">
+                        {customAIData.characterCount}
+                        /
+                        {customAIData.characterLimit}
+                      </td>
+                      <td className="py-1.5">{customAIData.period}</td>
+                      <td className="py-1.5">{customAIData.lastUpdate ? formatRelativeTime(customAIData.lastUpdate) : 'N/A'}</td>
+                      <td className="py-1.5">
+                        <div className="flex items-center space-x-1">
+                          <ProgressBar
+                            compact
+                            max={customAIData.characterLimit}
+                            value={customAIData.characterLimit - customAIData.characterCount}
+                          />
+                          <span className="text-xs text-slate-500">
+                            {service.usagePercentage}
+                            %
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                }
+
+                // Default fallback row
+                return (
+                  <tr className="border-b border-slate-100" key={service.name}>
+                    <td className="py-1.5 pl-1">
+                      <div className="flex items-center">
+                        <span className="text-slate-700">{service.name}</span>
+                        {isDataStale(service.lastUpdate) && <span className="ml-1 text-[10px] text-amber-500">⚠</span>}
+                      </div>
+                    </td>
+                    <td className="py-1.5">
+                      {service.usagePercentage}
                       %
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            )}
+                    </td>
+                    <td className="py-1.5">-</td>
+                    <td className="py-1.5">{formatRelativeTime(service.lastUpdate)}</td>
+                    <td className="py-1.5">
+                      <div className="flex items-center space-x-1">
+                        <ProgressBar compact max={100} value={service.usagePercentage} />
+                        <span className="text-xs text-slate-500">
+                          {service.usagePercentage}
+                          %
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
           </tbody>
         </table>
       </div>
 
-      {/* Cursor Section */}
-      {(cursorUsageData || cursorInvoiceData) && (
+      {/* Cursor Section - display if it exists in sorted services */}
+      {sortedServices.some(service => service.name === 'Cursor') && (cursorUsageData || cursorInvoiceData) && (
         <div className="mb-4">
           <div className="mb-1 flex items-center">
             <span className="text-sm font-medium text-slate-600">Cursor</span>
