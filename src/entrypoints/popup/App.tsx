@@ -140,15 +140,14 @@ function formatRelativeTime(timestamp: number) {
 }
 
 function ProgressBar({ compact = false, max, value }: { compact?: boolean, max: number, value: number }) {
-  const usage = max - value
-  const percentage = Math.min((usage / max) * 100, 100)
+  const percentage = Math.min((value / max) * 100, 100)
 
   const getBarColor = (percentage: number) => {
-    if (percentage >= 80)
+    if (percentage <= 20)
       return 'bg-emerald-500'
-    if (percentage >= 60)
+    if (percentage <= 40)
       return 'bg-green-500'
-    if (percentage >= 30)
+    if (percentage <= 70)
       return 'bg-yellow-400'
     return 'bg-amber-400'
   }
@@ -220,25 +219,25 @@ function App() {
       data: boltData,
       lastUpdate: boltData.lastUpdate || 0,
       name: 'Bolt.new',
-      usagePercentage: Math.round(((boltData.maxPerDay - boltData.totalToday) / boltData.maxPerDay) * 100),
+      usagePercentage: Math.round((boltData.totalToday / boltData.maxPerDay) * 100),
     },
     recraftData && {
       data: recraftData,
       lastUpdate: recraftData.lastUpdate || 0,
       name: 'Recraft.ai',
-      usagePercentage: Math.round((recraftData.remaining / recraftData.total) * 100),
+      usagePercentage: Math.round((recraftData.total - recraftData.remaining) / recraftData.total * 100),
     },
     elevenLabsData && {
       data: elevenLabsData,
       lastUpdate: elevenLabsData.lastUpdate || 0,
       name: 'ElevenLabs',
-      usagePercentage: Math.round(((elevenLabsData.characterLimit - elevenLabsData.characterCount) / elevenLabsData.characterLimit) * 100),
+      usagePercentage: Math.round((elevenLabsData.characterCount / elevenLabsData.characterLimit) * 100),
     },
     customAIData && {
       data: customAIData,
       lastUpdate: customAIData.lastUpdate || 0,
       name: customAIData.domainName,
-      usagePercentage: Math.round(((customAIData.characterLimit - customAIData.characterCount) / customAIData.characterLimit) * 100),
+      usagePercentage: Math.round((customAIData.characterCount / customAIData.characterLimit) * 100),
     },
     grokData && {
       data: grokData,
@@ -259,7 +258,7 @@ function App() {
       ),
       name: 'Cursor',
       usagePercentage: cursorUsageData
-        ? Math.round(((cursorUsageData.models['gpt-4'].total - cursorUsageData.models['gpt-4'].used) / cursorUsageData.models['gpt-4'].total) * 100)
+        ? Math.round((cursorUsageData.models['gpt-4'].used / cursorUsageData.models['gpt-4'].total) * 100)
         : 0,
     },
   ].filter(Boolean) as ServiceData[]
@@ -358,10 +357,10 @@ function App() {
                         <ProgressBar
                           compact
                           max={maxQueries}
-                          value={data.remainingQueries}
+                          value={maxQueries - data.remainingQueries}
                         />
                         <span className="text-xs text-slate-500">
-                          {Math.round((data.remainingQueries / maxQueries) * 100)}
+                          {Math.round(((maxQueries - data.remainingQueries) / maxQueries) * 100)}
                           %
                         </span>
                       </div>
@@ -414,10 +413,10 @@ function App() {
                           <ProgressBar
                             compact
                             max={v0Data.limit}
-                            value={v0Data.remaining}
+                            value={v0Data.limit - v0Data.remaining}
                           />
                           <span className="text-xs text-slate-500">
-                            {service.usagePercentage}
+                            {Math.round(((v0Data.limit - v0Data.remaining) / v0Data.limit) * 100)}
                             %
                           </span>
                         </div>
@@ -459,10 +458,10 @@ function App() {
                           <ProgressBar
                             compact
                             max={boltData.maxPerDay}
-                            value={boltData.maxPerDay - boltData.totalToday}
+                            value={boltData.totalToday}
                           />
                           <span className="text-xs text-slate-500">
-                            {service.usagePercentage}
+                            {Math.round((boltData.totalToday / boltData.maxPerDay) * 100)}
                             %
                           </span>
                         </div>
@@ -494,10 +493,10 @@ function App() {
                           <ProgressBar
                             compact
                             max={recraftData.total}
-                            value={recraftData.remaining}
+                            value={recraftData.total - recraftData.remaining}
                           />
                           <span className="text-xs text-slate-500">
-                            {service.usagePercentage}
+                            {Math.round(((recraftData.total - recraftData.remaining) / recraftData.total) * 100)}
                             %
                           </span>
                         </div>
@@ -531,10 +530,10 @@ function App() {
                           <ProgressBar
                             compact
                             max={elevenLabsData.characterLimit}
-                            value={elevenLabsData.characterLimit - elevenLabsData.characterCount}
+                            value={elevenLabsData.characterCount}
                           />
                           <span className="text-xs text-slate-500">
-                            {service.usagePercentage}
+                            {Math.round((elevenLabsData.characterCount / elevenLabsData.characterLimit) * 100)}
                             %
                           </span>
                         </div>
@@ -564,10 +563,10 @@ function App() {
                           <ProgressBar
                             compact
                             max={customAIData.characterLimit}
-                            value={customAIData.characterLimit - customAIData.characterCount}
+                            value={customAIData.characterCount}
                           />
                           <span className="text-xs text-slate-500">
-                            {service.usagePercentage}
+                            {Math.round((customAIData.characterCount / customAIData.characterLimit) * 100)}
                             %
                           </span>
                         </div>
@@ -611,10 +610,10 @@ function App() {
                           <ProgressBar
                             compact
                             max={maxQueries}
-                            value={data.remainingQueries}
+                            value={maxQueries - data.remainingQueries}
                           />
                           <span className="text-xs text-slate-500">
-                            {Math.round((data.remainingQueries / maxQueries) * 100)}
+                            {Math.round(((maxQueries - data.remainingQueries) / maxQueries) * 100)}
                             %
                           </span>
                         </div>
@@ -646,10 +645,10 @@ function App() {
                           <ProgressBar
                             compact
                             max={cursorUsageData.models['gpt-4'].total}
-                            value={cursorUsageData.models['gpt-4'].total - cursorUsageData.models['gpt-4'].used}
+                            value={cursorUsageData.models['gpt-4'].used}
                           />
                           <span className="text-xs text-slate-500">
-                            {service.usagePercentage}
+                            {Math.round((cursorUsageData.models['gpt-4'].used / cursorUsageData.models['gpt-4'].total) * 100)}
                             %
                           </span>
                         </div>
@@ -731,7 +730,7 @@ function App() {
                 <div className="col-span-2 mt-1">
                   <ProgressBar
                     max={cursorUsageData.models['gpt-4'].total}
-                    value={cursorUsageData.models['gpt-4'].total - cursorUsageData.models['gpt-4'].used}
+                    value={cursorUsageData.models['gpt-4'].used}
                   />
                 </div>
               </div>
@@ -771,7 +770,7 @@ function App() {
                 <div className="col-span-2 mt-1">
                   <ProgressBar
                     max={cursorHardLimitData.hardLimit * 100}
-                    value={(cursorHardLimitData.hardLimit * 100) - cursorInvoiceData.totalCents}
+                    value={cursorInvoiceData.totalCents}
                   />
                 </div>
               </div>
