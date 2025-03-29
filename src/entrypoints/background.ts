@@ -128,24 +128,67 @@ interface GrokRateLimitResponse {
 }
 
 interface GrokRateLimit {
+  DEEPERSEARCH?: {
+    lastUpdate: number
+    remainingQueries: number
+    totalQueries?: number
+    waitTimeSeconds?: number
+    windowSizeSeconds: number
+  }
   DEEPSEARCH?: {
     lastUpdate: number
     remainingQueries: number
+    totalQueries?: number
     waitTimeSeconds?: number
     windowSizeSeconds: number
   }
   DEFAULT?: {
     lastUpdate: number
     remainingQueries: number
+    totalQueries?: number
     waitTimeSeconds?: number
     windowSizeSeconds: number
   }
   REASONING?: {
     lastUpdate: number
     remainingQueries: number
+    totalQueries?: number
     waitTimeSeconds?: number
     windowSizeSeconds: number
   }
+}
+
+interface ChatGPTLimitResponse {
+  banner_info: null
+  blocked_features: any[]
+  default_model_slug: string
+  limits_progress: {
+    feature_name: string
+    remaining: number
+    reset_after: string
+  }[]
+  model_limits: {
+    model_slug: string
+    resets_after: string
+    using_default_model_slug: string
+  }[]
+  type: string
+}
+
+// We'll use this interface for actual storage
+interface ChatGPTLimitStorage {
+  default_model_slug: string
+  lastUpdate: number
+  limits_progress: {
+    feature_name: string
+    remaining: number
+    reset_after: string
+  }[]
+  model_limits: {
+    model_slug: string
+    resets_after: string
+    using_default_model_slug: string
+  }[]
 }
 
 export default defineBackground(() => {
@@ -380,6 +423,37 @@ export default defineBackground(() => {
           console.error('Error fetching cursor.com hard limit data:', error)
         }
       }
+
+      if (details.url.includes('chatgpt.com/backend-api/conversation/init')
+        || details.url.includes('chat.openai.com/backend-api/conversation/init')) {
+        try {
+          const response = await fetch(details.url, {
+            body: details.requestBody?.raw?.[0]?.bytes
+              ? JSON.stringify(JSON.parse(new TextDecoder().decode(details.requestBody.raw[0].bytes)))
+              : JSON.stringify({ requested_default_model: 'gpt-4o' }),
+            headers: {
+              'accept': '*/*',
+              'authorization': getHeader('authorization') || '',
+              'content-type': 'application/json',
+              'origin': new URL(details.url).origin,
+              'referer': details.referer || new URL(details.url).origin,
+            },
+            method: 'POST',
+          })
+
+          const data: ChatGPTLimitResponse = await response.json()
+
+          await storage.setItem('local:chatGPTLimit', {
+            default_model_slug: data.default_model_slug,
+            lastUpdate: now,
+            limits_progress: data.limits_progress,
+            model_limits: data.model_limits,
+          } as ChatGPTLimitStorage)
+        }
+        catch (error) {
+          console.error('Error fetching ChatGPT limit:', error)
+        }
+      }
     }, 2000),
     {
       types: ['xmlhttprequest'],
@@ -393,6 +467,8 @@ export default defineBackground(() => {
         'https://www.cursor.com/api/dashboard/get-monthly-invoice*',
         'https://www.cursor.com/api/usage*',
         'https://www.cursor.com/api/dashboard/get-hard-limit*',
+        'https://chatgpt.com/backend-api/conversation/init*',
+        'https://chat.openai.com/backend-api/conversation/init*',
       ],
     },
     ['requestHeaders', 'extraHeaders'],

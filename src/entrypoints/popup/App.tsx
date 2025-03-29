@@ -124,6 +124,21 @@ interface CursorHardLimit {
   lastUpdate: number
 }
 
+interface ChatGPTLimit {
+  default_model_slug: string
+  lastUpdate?: number
+  limits_progress: {
+    feature_name: string
+    remaining: number
+    reset_after: string
+  }[]
+  model_limits: {
+    model_slug: string
+    resets_after: string
+    using_default_model_slug: string
+  }[]
+}
+
 function formatRelativeTime(timestamp: number) {
   const diff = Date.now() - timestamp
   const minutes = Math.floor(diff / 60000)
@@ -166,6 +181,7 @@ function ProgressBar({ compact = false, max, value }: { compact?: boolean, max: 
 
 const SERVICE_URLS = {
   'Bolt.new': 'https://bolt.new',
+  'ChatGPT': 'https://chat.openai.com',
   'Cursor': 'https://www.cursor.com/settings',
   'ElevenLabs': 'https://elevenlabs.io/app/sign-up',
   'Grok': 'https://grok.com',
@@ -190,6 +206,7 @@ function App() {
   const cursorUsageData = useStorage<CursorUsage>('local:cursorModelUsage')
   const cursorInvoiceData = useStorage<CursorInvoice>('local:cursorUsage')
   const cursorHardLimitData = useStorage<CursorHardLimit>('local:cursorHardLimit')
+  const chatGPTData = useStorage<ChatGPTLimit>('local:chatGPTLimit')
 
   // Add sort type and state
   type SortType = 'lastUpdated' | 'name' | 'usage'
@@ -238,6 +255,14 @@ function App() {
       lastUpdate: customAIData.lastUpdate || 0,
       name: customAIData.domainName,
       usagePercentage: Math.round((customAIData.characterCount / customAIData.characterLimit) * 100),
+    },
+    chatGPTData && {
+      data: chatGPTData,
+      lastUpdate: chatGPTData.lastUpdate || 0,
+      name: 'ChatGPT',
+      usagePercentage: chatGPTData.limits_progress && chatGPTData.limits_progress.length > 0
+        ? Math.round((chatGPTData.limits_progress[0].remaining / 10) * 100)
+        : 100,
     },
     grokData && {
       data: grokData,
@@ -365,6 +390,85 @@ function App() {
                         </span>
                       </div>
                     </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Display ChatGPT data if it exists */}
+      {sortedServices.some(service => service.name === 'ChatGPT') && chatGPTData && (
+        <div className="mb-4">
+          <div className="mb-1 flex items-center">
+            <span className="text-sm font-medium text-slate-600">ChatGPT</span>
+            <span className="ml-1.5 rounded-sm bg-blue-50 px-1 py-0.5 text-xs text-blue-600">
+              {isDataStale(chatGPTData.lastUpdate || 0) ? 'Stale' : 'Active'}
+            </span>
+            <a className="ml-auto text-xs text-slate-400 hover:text-slate-600" href="https://chat.openai.com" target="_blank">Visit →</a>
+          </div>
+
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-slate-500">
+                <th className="pb-1 pl-1 font-medium">Type</th>
+                <th className="pb-1 font-medium">Status</th>
+                <th className="pb-1 font-medium">Resets At</th>
+                <th className="pb-1 font-medium">Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Model Limits */}
+              {chatGPTData.model_limits && chatGPTData.model_limits.map((model, index) => {
+                const isStale = isDataStale(chatGPTData.lastUpdate || 0)
+
+                return (
+                  <tr className={`border-b border-slate-100 ${isStale ? 'text-slate-400' : 'text-slate-700'}`} key={`model-${index}`}>
+                    <td className="py-1.5 pl-1">{model.model_slug}</td>
+                    <td className="py-1.5">
+                      <span className="rounded-sm bg-amber-50 px-1 py-0.5 text-xs text-amber-600">
+                        {model.using_default_model_slug || 'Active'}
+                      </span>
+                    </td>
+                    <td className="py-1.5">
+                      {new Date(model.resets_after).toLocaleDateString()}
+                      {' '}
+                      {new Date(model.resets_after).toLocaleTimeString()}
+                    </td>
+                    <td className="py-1.5">{chatGPTData.lastUpdate ? formatRelativeTime(chatGPTData.lastUpdate) : 'Unknown'}</td>
+                  </tr>
+                )
+              })}
+
+              {/* Features Limits */}
+              {chatGPTData.limits_progress && chatGPTData.limits_progress.map((feature, index) => {
+                const isStale = isDataStale(chatGPTData.lastUpdate || 0)
+                const maxValue = 10 // Default assumption for max value, may need to adjust based on actual API
+
+                return (
+                  <tr className={`border-b border-slate-100 ${isStale ? 'text-slate-400' : 'text-slate-700'}`} key={`feature-${index}`}>
+                    <td className="py-1.5 pl-1">{feature.feature_name}</td>
+                    <td className="py-1.5">
+                      <div className="flex items-center space-x-1">
+                        <ProgressBar
+                          compact
+                          max={maxValue}
+                          value={maxValue - feature.remaining}
+                        />
+                        <span className="text-xs text-slate-500">
+                          {feature.remaining}
+                          {' '}
+                          remaining
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-1.5">
+                      {new Date(feature.reset_after).toLocaleDateString()}
+                      {' '}
+                      {new Date(feature.reset_after).toLocaleTimeString()}
+                    </td>
+                    <td className="py-1.5">{chatGPTData.lastUpdate ? formatRelativeTime(chatGPTData.lastUpdate) : 'Unknown'}</td>
                   </tr>
                 )
               })}
