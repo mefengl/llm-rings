@@ -141,6 +141,7 @@ interface ChatGPTLimit {
 
 function formatRelativeTime(timestamp: number) {
   const diff = Date.now() - timestamp
+  const seconds = Math.floor(diff / 1000)
   const minutes = Math.floor(diff / 60000)
   const hours = Math.floor(minutes / 60)
   const days = Math.floor(hours / 24)
@@ -151,6 +152,8 @@ function formatRelativeTime(timestamp: number) {
     return `${hours}h ago`
   if (minutes > 0)
     return `${minutes}m ago`
+  if (seconds > 0)
+    return `${seconds}s ago`
   return 'just now'
 }
 
@@ -309,18 +312,24 @@ function App() {
         <div className="flex items-center gap-2">
           <div className="flex rounded-md border border-slate-200 bg-white text-xs">
             <button
+              aria-label="Sort by most recent"
+              aria-pressed={sortType === 'lastUpdated'}
               className={`px-2 py-1 ${sortType === 'lastUpdated' ? 'bg-slate-100 font-medium' : ''}`}
               onClick={() => setSortType('lastUpdated')}
             >
               Recent
             </button>
             <button
+              aria-label="Sort alphabetically by name"
+              aria-pressed={sortType === 'name'}
               className={`px-2 py-1 ${sortType === 'name' ? 'bg-slate-100 font-medium' : ''}`}
               onClick={() => setSortType('name')}
             >
               Name
             </button>
             <button
+              aria-label="Sort by usage percentage"
+              aria-pressed={sortType === 'usage'}
               className={`px-2 py-1 ${sortType === 'usage' ? 'bg-slate-100 font-medium' : ''}`}
               onClick={() => setSortType('usage')}
             >
@@ -339,7 +348,7 @@ function App() {
             <span className="ml-1.5 rounded-sm bg-blue-50 px-1 py-0.5 text-xs text-blue-600">
               {isDataStale(grokData.DEFAULT?.lastUpdate || 0) ? 'Stale' : 'Active'}
             </span>
-            <a className="ml-auto text-xs text-slate-400 hover:text-slate-600" href="https://grok.com" target="_blank">Visit →</a>
+            <a className="ml-auto text-xs text-slate-400 hover:text-slate-600" href="https://grok.com" target="_blank" title="Visit Grok website">Visit →</a>
           </div>
 
           <table className="w-full text-xs">
@@ -406,7 +415,7 @@ function App() {
             <span className="ml-1.5 rounded-sm bg-blue-50 px-1 py-0.5 text-xs text-blue-600">
               {isDataStale(chatGPTData.lastUpdate || 0) ? 'Stale' : 'Active'}
             </span>
-            <a className="ml-auto text-xs text-slate-400 hover:text-slate-600" href="https://chat.openai.com" target="_blank">Visit →</a>
+            <a className="ml-auto text-xs text-slate-400 hover:text-slate-600" href="https://chat.openai.com" target="_blank" title="Visit ChatGPT website">Visit →</a>
           </div>
 
           <table className="w-full text-xs">
