@@ -344,8 +344,10 @@ export default defineBackground(() => {
           })
           const data: CursorInvoice = await response.json()
 
-          // Calculate total usage in cents
-          const totalCents = data.items.reduce((sum, item) => sum + item.cents, 0)
+          // Calculate total usage in cents, excluding negative values (Mid-month usage paid)
+          const totalCents = data.items
+            .filter(item => item.cents > 0)
+            .reduce((sum, item) => sum + item.cents, 0)
 
           await storage.setItem('local:cursorUsage', {
             items: data.items,

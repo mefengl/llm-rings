@@ -283,11 +283,14 @@ function App() {
       lastUpdate: Math.max(
         cursorUsageData?.lastUpdate || 0,
         cursorInvoiceData?.lastUpdate || 0,
+        cursorHardLimitData?.lastUpdate || 0,
       ),
       name: 'Cursor',
-      usagePercentage: cursorUsageData
-        ? Math.round((cursorUsageData.models['gpt-4'].used / cursorUsageData.models['gpt-4'].total) * 100)
-        : 0,
+      usagePercentage: cursorInvoiceData && cursorHardLimitData
+        ? Math.round((cursorInvoiceData.totalCents / (cursorHardLimitData.hardLimit * 100)) * 100)
+        : cursorUsageData
+          ? Math.round((cursorUsageData.models['gpt-4'].used / cursorUsageData.models['gpt-4'].total) * 100)
+          : 0,
     },
   ].filter(Boolean) as ServiceData[]
 
@@ -735,39 +738,78 @@ function App() {
                   )
                 }
 
-                if (service.name === 'Cursor' && cursorUsageData) {
-                  return (
-                    <tr className="border-b border-slate-100" key={service.name}>
-                      <td className="py-1.5 pl-1">
-                        <div className="flex items-center">
-                          <span className="text-slate-700">{service.name}</span>
-                          {isDataStale(cursorUsageData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
-                        </div>
-                      </td>
-                      <td className="py-1.5">
-                        {cursorUsageData.models['gpt-4'].used}
-                        /
-                        {cursorUsageData.models['gpt-4'].total}
-                      </td>
-                      <td className="py-1.5" title={new Date(cursorUsageData.startOfMonth).toLocaleString()}>
-                        Monthly
-                      </td>
-                      <td className="py-1.5">{cursorUsageData.lastUpdate ? formatRelativeTime(cursorUsageData.lastUpdate) : 'N/A'}</td>
-                      <td className="py-1.5">
-                        <div className="flex items-center space-x-1">
-                          <ProgressBar
-                            compact
-                            max={cursorUsageData.models['gpt-4'].total}
-                            value={cursorUsageData.models['gpt-4'].used}
-                          />
-                          <span className="text-xs text-slate-500">
-                            {Math.round((cursorUsageData.models['gpt-4'].used / cursorUsageData.models['gpt-4'].total) * 100)}
-                            %
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  )
+                if (service.name === 'Cursor' && (cursorUsageData || (cursorInvoiceData && cursorHardLimitData))) {
+                  // Prioritize displaying billing data if available
+                  if (cursorInvoiceData && cursorHardLimitData) {
+                    return (
+                      <tr className="border-b border-slate-100" key={service.name}>
+                        <td className="py-1.5 pl-1">
+                          <div className="flex items-center">
+                            <span className="text-slate-700">{service.name}</span>
+                            {isDataStale(cursorInvoiceData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
+                          </div>
+                        </td>
+                        <td className="py-1.5">
+                          {formatDollars(cursorInvoiceData.totalCents)}
+                          /
+                          $
+                          {cursorHardLimitData.hardLimit}
+                        </td>
+                        <td className="py-1.5">
+                          Monthly
+                        </td>
+                        <td className="py-1.5">{cursorInvoiceData.lastUpdate ? formatRelativeTime(cursorInvoiceData.lastUpdate) : 'N/A'}</td>
+                        <td className="py-1.5">
+                          <div className="flex items-center space-x-1">
+                            <ProgressBar
+                              compact
+                              max={cursorHardLimitData.hardLimit * 100}
+                              value={cursorInvoiceData.totalCents}
+                            />
+                            <span className="text-xs text-slate-500">
+                              {Math.round((cursorInvoiceData.totalCents / (cursorHardLimitData.hardLimit * 100)) * 100)}
+                              %
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  }
+                  // Fall back to model usage display if billing data not available
+                  return cursorUsageData
+                    ? (
+                        <tr className="border-b border-slate-100" key={service.name}>
+                          <td className="py-1.5 pl-1">
+                            <div className="flex items-center">
+                              <span className="text-slate-700">{service.name}</span>
+                              {isDataStale(cursorUsageData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
+                            </div>
+                          </td>
+                          <td className="py-1.5">
+                            {cursorUsageData.models['gpt-4'].used}
+                            /
+                            {cursorUsageData.models['gpt-4'].total}
+                          </td>
+                          <td className="py-1.5" title={new Date(cursorUsageData.startOfMonth).toLocaleString()}>
+                            Monthly
+                          </td>
+                          <td className="py-1.5">{cursorUsageData.lastUpdate ? formatRelativeTime(cursorUsageData.lastUpdate) : 'N/A'}</td>
+                          <td className="py-1.5">
+                            <div className="flex items-center space-x-1">
+                              <ProgressBar
+                                compact
+                                max={cursorUsageData.models['gpt-4'].total}
+                                value={cursorUsageData.models['gpt-4'].used}
+                              />
+                              <span className="text-xs text-slate-500">
+                                {Math.round((cursorUsageData.models['gpt-4'].used / cursorUsageData.models['gpt-4'].total) * 100)}
+                                %
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    : null
                 }
 
                 // Default fallback row
