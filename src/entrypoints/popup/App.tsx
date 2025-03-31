@@ -56,6 +56,16 @@ interface CustomAILimit {
   period: string
 }
 
+interface SameNewLimit {
+  isActive: boolean
+  isSubscription: boolean
+  lastReset: number
+  lastUpdate: number
+  nextReset: number
+  tokenQuota: number
+  tokenUsed: number
+}
+
 interface GrokRateLimit {
   DEEPERSEARCH?: {
     lastUpdate: number
@@ -167,6 +177,7 @@ const SERVICE_URLS = {
   'ElevenLabs': 'https://elevenlabs.io/app/sign-up',
   'Grok': 'https://grok.com',
   'Recraft.ai': 'https://recraft.ai',
+  'Same.new': 'https://same.new',
   'V0.dev': 'https://v0.dev/chat',
 } as const
 
@@ -187,6 +198,7 @@ function App() {
   const cursorInvoiceData = useStorage<CursorInvoice>('local:cursorUsage')
   const cursorHardLimitData = useStorage<CursorHardLimit>('local:cursorHardLimit')
   const chatGPTData = useStorage<ChatGPTLimit>('local:chatGPTLimit')
+  const sameNewData = useStorage<SameNewLimit>('local:sameNewLimit')
 
   // Add sort type and state
   type SortType = 'lastUpdated' | 'name' | 'usage'
@@ -263,6 +275,12 @@ function App() {
       ),
       name: 'Cursor',
       usagePercentage: Math.round((cursorInvoiceData.totalCents / (cursorHardLimitData.hardLimit * 100)) * 100),
+    },
+    sameNewData && {
+      data: sameNewData,
+      lastUpdate: sameNewData.lastUpdate || 0,
+      name: 'Same.new',
+      usagePercentage: Math.round((sameNewData.tokenUsed / sameNewData.tokenQuota) * 100),
     },
   ].filter(Boolean) as ServiceData[]
 
@@ -747,6 +765,43 @@ function App() {
                   )
                 }
 
+                if (service.name === 'Same.new' && sameNewData) {
+                  return (
+                    <tr className="border-b border-slate-100" key={service.name}>
+                      <td className="py-1.5 pl-1">
+                        <div className="flex items-center">
+                          <span className="text-slate-700">{service.name}</span>
+                          {isDataStale(sameNewData.lastUpdate) && <span className="ml-1 text-[10px] text-amber-300/70">stale</span>}
+                        </div>
+                      </td>
+                      <td className="py-1.5">
+                        {sameNewData.tokenUsed.toLocaleString()}
+                        /
+                        {sameNewData.tokenQuota.toLocaleString()}
+                      </td>
+                      <td className="py-1.5" title={new Date(sameNewData.nextReset).toLocaleString()}>
+                        Reset:
+                        {' '}
+                        {new Date(sameNewData.nextReset).toLocaleDateString()}
+                      </td>
+                      <td className="py-1.5">{sameNewData.lastUpdate ? formatRelativeTime(sameNewData.lastUpdate) : 'N/A'}</td>
+                      <td className="py-1.5">
+                        <div className="flex items-center space-x-1">
+                          <ProgressBar
+                            compact
+                            max={sameNewData.tokenQuota}
+                            value={sameNewData.tokenUsed}
+                          />
+                          <span className="text-xs text-slate-500">
+                            {Math.round((sameNewData.tokenUsed / sameNewData.tokenQuota) * 100)}
+                            %
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                }
+
                 // Default fallback row
                 return (
                   <tr className="border-b border-slate-100" key={service.name}>
@@ -829,8 +884,57 @@ function App() {
         </div>
       )}
 
+      {/* Same.new Section - detailed view */}
+      {sortedServices.some(service => service.name === 'Same.new') && sameNewData && (
+        <div className="mb-4">
+          <div className="mb-1 flex items-center">
+            <span className="text-sm font-medium text-slate-600">Same.new</span>
+            <span className="ml-1.5 rounded-sm bg-blue-50 px-1 py-0.5 text-xs text-blue-600">
+              {isDataStale(sameNewData.lastUpdate) ? 'Stale' : 'Active'}
+            </span>
+            <a className="ml-auto text-xs text-slate-400 hover:text-slate-600" href={SERVICE_URLS['Same.new']} target="_blank">Visit →</a>
+          </div>
+
+          <div className="rounded border border-slate-200 bg-white p-2">
+            <div className="mb-1.5 text-xs font-medium text-slate-600">Token Usage</div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Used Tokens</span>
+                  <span>{sameNewData.tokenUsed.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Total Quota</span>
+                  <span>{sameNewData.tokenQuota.toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Last Reset</span>
+                  <span>{new Date(sameNewData.lastReset).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Next Reset</span>
+                  <span>{new Date(sameNewData.nextReset).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Subscription</span>
+                  <span>{sameNewData.isSubscription ? 'Yes' : 'No'}</span>
+                </div>
+              </div>
+              <div className="col-span-2 mt-1">
+                <ProgressBar
+                  max={sameNewData.tokenQuota}
+                  value={sameNewData.tokenUsed}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* No Data State */}
-      {!grokData && !v0Data && !boltData && !recraftData && !elevenLabsData && !customAIData && !cursorInvoiceData && (
+      {!grokData && !v0Data && !boltData && !recraftData && !elevenLabsData && !customAIData && !cursorInvoiceData && !sameNewData && (
         <div className="mt-20 text-center text-slate-500">
           <p>No usage data available yet.</p>
           <p className="mt-2 text-sm">Visit AI services to start tracking usage.</p>

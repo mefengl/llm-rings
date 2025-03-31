@@ -191,6 +191,21 @@ interface ChatGPTLimitStorage {
   }[]
 }
 
+interface SameNewSubscription {
+  canceledAt: null | string
+  endedAt: null | string
+  estimatedCost: number
+  isActive: boolean
+  isSubscription: boolean
+  lastResetAt: string
+  nextResetAt: number
+  startedAt: null | string
+  tokensQuota: number
+  totalPurchasedTokens: number
+  totalTokenUsed: number
+  usedPurchasedTokens: number
+}
+
 export default defineBackground(() => {
   // Add permission toggle
   addPermissionToggle()
@@ -456,6 +471,34 @@ export default defineBackground(() => {
           console.error('Error fetching ChatGPT limit:', error)
         }
       }
+
+      if (details.url.includes('same.new/api/payment/subscriptions')) {
+        try {
+          const response = await fetch(details.url, {
+            headers: {
+              'accept': '*/*',
+              'content-type': 'application/json',
+              'origin': 'https://same.new',
+              'referer': details.referer || 'https://same.new',
+            },
+            method: 'GET',
+          })
+          const data: SameNewSubscription = await response.json()
+
+          await storage.setItem('local:sameNewLimit', {
+            isActive: data.isActive,
+            isSubscription: data.isSubscription,
+            lastReset: new Date(data.lastResetAt).getTime(),
+            lastUpdate: now,
+            nextReset: data.nextResetAt,
+            tokenQuota: data.tokensQuota,
+            tokenUsed: data.totalTokenUsed,
+          })
+        }
+        catch (error) {
+          console.error('Error fetching same.new subscription data:', error)
+        }
+      }
     }, 2000),
     {
       types: ['xmlhttprequest'],
@@ -471,6 +514,7 @@ export default defineBackground(() => {
         'https://www.cursor.com/api/dashboard/get-hard-limit*',
         'https://chatgpt.com/backend-api/conversation/init*',
         'https://chat.openai.com/backend-api/conversation/init*',
+        'https://same.new/api/payment/subscriptions*',
       ],
     },
     ['requestHeaders', 'extraHeaders'],
