@@ -112,6 +112,32 @@ interface CursorHardLimit {
   lastUpdate: number
 }
 
+interface CursorUsageData {
+  'gpt-3.5-turbo': {
+    maxRequestUsage: null | number
+    maxTokenUsage: null | number
+    numRequests: number
+    numRequestsTotal: number
+    numTokens: number
+  }
+  'gpt-4': {
+    maxRequestUsage: number
+    maxTokenUsage: null | number
+    numRequests: number
+    numRequestsTotal: number
+    numTokens: number
+  }
+  'gpt-4-32k': {
+    maxRequestUsage: number
+    maxTokenUsage: null | number
+    numRequests: number
+    numRequestsTotal: number
+    numTokens: number
+  }
+  lastUpdate?: number
+  startOfMonth: string
+}
+
 interface ChatGPTLimit {
   default_model_slug: string
   lastUpdate?: number
@@ -197,6 +223,7 @@ function App() {
   const grokData = useStorage<GrokRateLimit>('local:grokLimit')
   const cursorInvoiceData = useStorage<CursorInvoice>('local:cursorUsage')
   const cursorHardLimitData = useStorage<CursorHardLimit>('local:cursorHardLimit')
+  const cursorUsageData = useStorage<CursorUsageData>('local:cursorApiUsage')
   const chatGPTData = useStorage<ChatGPTLimit>('local:chatGPTLimit')
   const sameNewData = useStorage<SameNewLimit>('local:sameNewLimit')
 
@@ -268,13 +295,20 @@ function App() {
       usagePercentage: grokData.DEFAULT ? Math.round((grokData.DEFAULT.remainingQueries / 20) * 100) : 0,
     },
     (cursorInvoiceData && cursorHardLimitData) && {
-      data: { cursorHardLimitData, cursorInvoiceData },
+      data: { cursorHardLimitData, cursorInvoiceData, cursorUsageData },
       lastUpdate: Math.max(
         cursorInvoiceData?.lastUpdate || 0,
         cursorHardLimitData?.lastUpdate || 0,
+        cursorUsageData?.lastUpdate || 0,
       ),
       name: 'Cursor',
       usagePercentage: Math.round((cursorInvoiceData.totalCents / (cursorHardLimitData.hardLimit * 100)) * 100),
+    },
+    (!cursorInvoiceData || !cursorHardLimitData) && {
+      data: null,
+      lastUpdate: 0,
+      name: 'Cursor',
+      usagePercentage: undefined,
     },
     sameNewData && {
       data: sameNewData,
@@ -765,6 +799,35 @@ function App() {
                   )
                 }
 
+                if (service.name === 'Cursor' && (!cursorInvoiceData || !cursorHardLimitData)) {
+                  // Display placeholder row for Cursor when data is not available
+                  return (
+                    <tr className="border-b border-slate-100" key={service.name}>
+                      <td className="py-1.5 pl-1">
+                        <div className="flex items-center">
+                          <span className="text-slate-700">{service.name}</span>
+                          <span className="ml-1 text-[10px] text-amber-300/70">pending</span>
+                        </div>
+                      </td>
+                      <td className="py-1.5">数据暂未可用</td>
+                      <td className="py-1.5">Monthly</td>
+                      <td className="py-1.5">N/A</td>
+                      <td className="py-1.5">
+                        <div className="flex items-center space-x-1">
+                          <ProgressBar
+                            compact
+                            max={100}
+                            value={0}
+                          />
+                          <span className="text-xs text-slate-500">
+                            N/A
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                }
+
                 if (service.name === 'Same.new' && sameNewData) {
                   return (
                     <tr className="border-b border-slate-100" key={service.name}>
@@ -812,17 +875,15 @@ function App() {
                       </div>
                     </td>
                     <td className="py-1.5">
-                      {service.usagePercentage}
-                      %
+                      {service.usagePercentage !== undefined ? `${service.usagePercentage}%` : 'N/A'}
                     </td>
                     <td className="py-1.5">-</td>
-                    <td className="py-1.5">{formatRelativeTime(service.lastUpdate)}</td>
+                    <td className="py-1.5">{service.lastUpdate ? formatRelativeTime(service.lastUpdate) : 'N/A'}</td>
                     <td className="py-1.5">
                       <div className="flex items-center space-x-1">
-                        <ProgressBar compact max={100} value={service.usagePercentage} />
+                        <ProgressBar compact max={100} value={service.usagePercentage || 0} />
                         <span className="text-xs text-slate-500">
-                          {service.usagePercentage}
-                          %
+                          {service.usagePercentage !== undefined ? `${service.usagePercentage}%` : 'N/A'}
                         </span>
                       </div>
                     </td>
@@ -834,53 +895,93 @@ function App() {
       </div>
 
       {/* Cursor Section - display if it exists in sorted services */}
-      {sortedServices.some(service => service.name === 'Cursor') && cursorInvoiceData && cursorHardLimitData && (
+      {sortedServices.some(service => service.name === 'Cursor') && (
         <div className="mb-4">
           <div className="mb-1 flex items-center">
             <span className="text-sm font-medium text-slate-600">Cursor</span>
             <span className="ml-1.5 rounded-sm bg-blue-50 px-1 py-0.5 text-xs text-blue-600">
-              {isDataStale(cursorInvoiceData?.lastUpdate || 0) ? 'Stale' : 'Active'}
+              {(cursorInvoiceData && isDataStale(cursorInvoiceData?.lastUpdate || 0)) ? 'Stale' : 'Active'}
             </span>
             <a className="ml-auto text-xs text-slate-400 hover:text-slate-600" href={SERVICE_URLS.Cursor} target="_blank">Visit →</a>
           </div>
 
-          <div className="rounded border border-slate-200 bg-white p-2">
-            <div className="mb-1.5 text-xs font-medium text-slate-600">Billing</div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Current Usage</span>
-                  <span>{formatDollars(cursorInvoiceData.totalCents)}</span>
+          {cursorInvoiceData && cursorHardLimitData
+            ? (
+                <div className="rounded border border-slate-200 bg-white p-2">
+                  <div className="mb-1.5 text-xs font-medium text-slate-600">Billing</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Current Usage</span>
+                        <span>{formatDollars(cursorInvoiceData.totalCents)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Hard Limit</span>
+                        <span>
+                          $
+                          {cursorHardLimitData.hardLimit}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Updated</span>
+                        <span>{formatRelativeTime(cursorInvoiceData.lastUpdate)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Remaining</span>
+                        <span>
+                          $
+                          {(cursorHardLimitData.hardLimit - (cursorInvoiceData.totalCents / 100)).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="col-span-2 mt-1">
+                      <ProgressBar
+                        max={cursorHardLimitData.hardLimit * 100}
+                        value={cursorInvoiceData.totalCents}
+                      />
+                    </div>
+                  </div>
+
+                  {cursorUsageData && cursorUsageData['gpt-4'] && (
+                    <div className="mt-4">
+                      <div className="mb-1.5 text-xs font-medium text-slate-600">Premium Requests</div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Used</span>
+                            <span>{cursorUsageData['gpt-4'].numRequests}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Limit</span>
+                            <span>{cursorUsageData['gpt-4'].maxRequestUsage}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Period Start</span>
+                            <span>{new Date(cursorUsageData.startOfMonth).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <div className="col-span-2 mt-1">
+                          <ProgressBar
+                            max={cursorUsageData['gpt-4'].maxRequestUsage}
+                            value={cursorUsageData['gpt-4'].numRequests}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Hard Limit</span>
-                  <span>
-                    $
-                    {cursorHardLimitData.hardLimit}
-                  </span>
+              )
+            : (
+                <div className="rounded border border-slate-200 bg-white p-2">
+                  <div className="flex items-center justify-center p-4 text-sm text-slate-500">
+                    数据暂未可用，请访问Cursor网站刷新
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Updated</span>
-                  <span>{formatRelativeTime(cursorInvoiceData.lastUpdate)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Remaining</span>
-                  <span>
-                    $
-                    {cursorHardLimitData.hardLimit - (cursorInvoiceData.totalCents / 100)}
-                  </span>
-                </div>
-              </div>
-              <div className="col-span-2 mt-1">
-                <ProgressBar
-                  max={cursorHardLimitData.hardLimit * 100}
-                  value={cursorInvoiceData.totalCents}
-                />
-              </div>
-            </div>
-          </div>
+              )}
         </div>
       )}
 

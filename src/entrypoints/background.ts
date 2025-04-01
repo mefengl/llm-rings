@@ -357,7 +357,16 @@ export default defineBackground(() => {
             },
             method: 'POST',
           })
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+
           const data: CursorInvoice = await response.json()
+
+          if (!data || !data.items) {
+            throw new Error('Invalid response data from cursor.com')
+          }
 
           // Calculate total usage in cents, excluding negative values (Mid-month usage paid)
           const totalCents = data.items
@@ -367,7 +376,7 @@ export default defineBackground(() => {
           await storage.setItem('local:cursorUsage', {
             items: data.items,
             lastUpdate: now,
-            pricing: data.pricingDescription.description,
+            pricing: data.pricingDescription?.description || 'Unknown',
             totalCents,
           })
         }
@@ -387,29 +396,38 @@ export default defineBackground(() => {
             },
             method: 'GET',
           })
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+
           const data: CursorUsage = await response.json()
+
+          if (!data) {
+            throw new Error('Invalid response data from cursor.com/api/usage')
+          }
 
           // Store model usage statistics
           await storage.setItem('local:cursorModelUsage', {
             lastUpdate: now,
             models: {
               'gpt-3.5-turbo': {
-                tokens: data['gpt-3.5-turbo'].numTokens,
-                total: data['gpt-3.5-turbo'].maxRequestUsage || 0,
-                used: data['gpt-3.5-turbo'].numRequests,
+                tokens: data['gpt-3.5-turbo']?.numTokens || 0,
+                total: data['gpt-3.5-turbo']?.maxRequestUsage || 0,
+                used: data['gpt-3.5-turbo']?.numRequests || 0,
               },
               'gpt-4': {
-                tokens: data['gpt-4'].numTokens,
-                total: data['gpt-4'].maxRequestUsage,
-                used: data['gpt-4'].numRequests,
+                tokens: data['gpt-4']?.numTokens || 0,
+                total: data['gpt-4']?.maxRequestUsage || 0,
+                used: data['gpt-4']?.numRequests || 0,
               },
               'gpt-4-32k': {
-                tokens: data['gpt-4-32k'].numTokens,
-                total: data['gpt-4-32k'].maxRequestUsage,
-                used: data['gpt-4-32k'].numRequests,
+                tokens: data['gpt-4-32k']?.numTokens || 0,
+                total: data['gpt-4-32k']?.maxRequestUsage || 0,
+                used: data['gpt-4-32k']?.numRequests || 0,
               },
             },
-            startOfMonth: data.startOfMonth,
+            startOfMonth: data.startOfMonth || new Date().toISOString(),
           })
         }
         catch (error) {
@@ -429,7 +447,16 @@ export default defineBackground(() => {
             },
             method: 'POST',
           })
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+
           const data: CursorHardLimit = await response.json()
+
+          if (!data || typeof data.hardLimit !== 'number') {
+            throw new Error('Invalid hard limit data from cursor.com')
+          }
 
           await storage.setItem('local:cursorHardLimit', {
             hardLimit: data.hardLimit,
