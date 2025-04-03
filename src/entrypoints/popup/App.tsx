@@ -119,29 +119,25 @@ interface CursorHardLimit {
 }
 
 interface CursorUsageData {
-  'gpt-3.5-turbo': {
-    maxRequestUsage: null | number
-    maxTokenUsage: null | number
-    numRequests: number
-    numRequestsTotal: number
-    numTokens: number
+  lastUpdate?: number
+  models: {
+    'gpt-3.5-turbo': {
+      tokens: number
+      total: number
+      used: number
+    }
+    'gpt-4': {
+      tokens: number
+      total: number
+      used: number
+    }
+    'gpt-4-32k': {
+      tokens: number
+      total: number
+      used: number
+    }
   }
-  'gpt-4': {
-    maxRequestUsage: number
-    maxTokenUsage: null | number
-    numRequests: number
-    numRequestsTotal: number
-    numTokens: number
-  }
-  'gpt-4-32k': {
-    maxRequestUsage: number
-    maxTokenUsage: null | number
-    numRequests: number
-    numRequestsTotal: number
-    numTokens: number
-  }
-  'lastUpdate'?: number
-  'startOfMonth': string
+  startOfMonth: string
 }
 
 interface ChatGPTLimit {
@@ -230,7 +226,7 @@ function App() {
   const grokConversationsData = useStorage<GrokConversationsData>('local:grokConversations')
   const cursorInvoiceData = useStorage<CursorInvoice>('local:cursorUsage')
   const cursorHardLimitData = useStorage<CursorHardLimit>('local:cursorHardLimit')
-  const cursorUsageData = useStorage<CursorUsageData>('local:cursorApiUsage')
+  const cursorUsageData = useStorage<CursorUsageData>('local:cursorModelUsage')
   const chatGPTData = useStorage<ChatGPTLimit>('local:chatGPTLimit')
   const sameNewData = useStorage<SameNewLimit>('local:sameNewLimit')
 
@@ -981,18 +977,18 @@ function App() {
                     </div>
                   </div>
 
-                  {cursorUsageData && cursorUsageData['gpt-4'] && (
+                  {cursorUsageData && cursorUsageData.models && cursorUsageData.models['gpt-4'] && (
                     <div className="mt-4">
                       <div className="mb-1.5 text-xs font-medium text-slate-600">Premium Requests</div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
                             <span className="text-slate-500">Used</span>
-                            <span>{cursorUsageData['gpt-4'].numRequests}</span>
+                            <span>{cursorUsageData.models['gpt-4'].used}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-500">Limit</span>
-                            <span>{cursorUsageData['gpt-4'].maxRequestUsage}</span>
+                            <span>{cursorUsageData.models['gpt-4'].total}</span>
                           </div>
                         </div>
                         <div className="space-y-1 text-xs">
@@ -1000,11 +996,15 @@ function App() {
                             <span className="text-slate-500">Period Start</span>
                             <span>{new Date(cursorUsageData.startOfMonth).toLocaleDateString()}</span>
                           </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Tokens</span>
+                            <span>{cursorUsageData.models['gpt-4'].tokens.toLocaleString()}</span>
+                          </div>
                         </div>
                         <div className="col-span-2 mt-1">
                           <ProgressBar
-                            max={cursorUsageData['gpt-4'].maxRequestUsage}
-                            value={cursorUsageData['gpt-4'].numRequests}
+                            max={cursorUsageData.models['gpt-4'].total}
+                            value={cursorUsageData.models['gpt-4'].used}
                           />
                         </div>
                       </div>
