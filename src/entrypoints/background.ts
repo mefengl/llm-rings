@@ -158,6 +158,23 @@ interface GrokRateLimit {
   }
 }
 
+interface GrokConversation {
+  conversationId: string
+  createTime: string
+  modifyTime: string
+  title: string
+}
+
+interface GrokConversationsResponse {
+  conversations: GrokConversation[]
+}
+
+interface GrokConversationsData {
+  count: number
+  lastUpdate: number
+  maxCount: number
+}
+
 interface ChatGPTLimitResponse {
   banner_info: null
   blocked_features: any[]
@@ -526,6 +543,40 @@ export default defineBackground(() => {
           console.error('Error fetching same.new subscription data:', error)
         }
       }
+
+      if (details.url.includes('grok.com/rest/app-chat/conversations')) {
+        try {
+          const response = await fetch(details.url, {
+            headers: {
+              accept: getHeader('accept') || '*/*',
+              cookie: getHeader('cookie') || '',
+            },
+          })
+
+          const data = await response.json() as GrokConversationsResponse
+          if (data && data.conversations && Array.isArray(data.conversations)) {
+            // Calculate conversations in the last 2 hours
+            const twoHoursAgo = new Date()
+            twoHoursAgo.setHours(twoHoursAgo.getHours() - 2)
+
+            // Filter conversations created in the last 2 hours
+            const recentConversations = data.conversations.filter((conv: GrokConversation) => {
+              const createTime = new Date(conv.createTime)
+              return createTime >= twoHoursAgo
+            })
+
+            // Store the count
+            await storage.setItem('local:grokConversations', {
+              count: recentConversations.length,
+              lastUpdate: now,
+              maxCount: 10,
+            } as GrokConversationsData)
+          }
+        }
+        catch (error) {
+          console.error('Error fetching Grok conversations:', error)
+        }
+      }
     }, 2000),
     {
       types: ['xmlhttprequest'],
@@ -542,6 +593,7 @@ export default defineBackground(() => {
         'https://chatgpt.com/backend-api/conversation/init*',
         'https://chat.openai.com/backend-api/conversation/init*',
         'https://same.new/api/payment/subscriptions*',
+        'https://grok.com/rest/app-chat/conversations*',
       ],
     },
     ['requestHeaders', 'extraHeaders'],

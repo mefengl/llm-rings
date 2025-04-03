@@ -66,6 +66,12 @@ interface SameNewLimit {
   tokenUsed: number
 }
 
+interface GrokConversationsData {
+  count: number
+  lastUpdate: number
+  maxCount: number
+}
+
 interface GrokRateLimit {
   DEEPERSEARCH?: {
     lastUpdate: number
@@ -134,8 +140,8 @@ interface CursorUsageData {
     numRequestsTotal: number
     numTokens: number
   }
-  lastUpdate?: number
-  startOfMonth: string
+  'lastUpdate'?: number
+  'startOfMonth': string
 }
 
 interface ChatGPTLimit {
@@ -221,6 +227,7 @@ function App() {
   const elevenLabsData = useStorage<ElevenLabsLimit>('local:elevenLabsLimit')
   const customAIData = useStorage<CustomAILimit>('local:customAILimit')
   const grokData = useStorage<GrokRateLimit>('local:grokLimit')
+  const grokConversationsData = useStorage<GrokConversationsData>('local:grokConversations')
   const cursorInvoiceData = useStorage<CursorInvoice>('local:cursorUsage')
   const cursorHardLimitData = useStorage<CursorHardLimit>('local:cursorHardLimit')
   const cursorUsageData = useStorage<CursorUsageData>('local:cursorApiUsage')
@@ -293,6 +300,12 @@ function App() {
       ),
       name: 'Grok',
       usagePercentage: grokData.DEFAULT ? Math.round((grokData.DEFAULT.remainingQueries / 20) * 100) : 0,
+    },
+    grokConversationsData && {
+      data: grokConversationsData,
+      lastUpdate: grokConversationsData.lastUpdate || 0,
+      name: 'Grok Conversations',
+      usagePercentage: Math.round((grokConversationsData.count / grokConversationsData.maxCount) * 100),
     },
     (cursorInvoiceData && cursorHardLimitData) && {
       data: { cursorHardLimitData, cursorInvoiceData, cursorUsageData },
@@ -377,6 +390,30 @@ function App() {
             </span>
             <a className="ml-auto text-xs text-slate-400 hover:text-slate-600" href="https://grok.com" target="_blank" title="Visit Grok website">Visit →</a>
           </div>
+
+          {/* Add Grok Conversations Count (last 2 hours) */}
+          {grokConversationsData && (
+            <div className="mb-2 flex items-center justify-between rounded-md bg-blue-50/50 p-2">
+              <div>
+                <span className="text-xs font-medium text-slate-700">Conversations (last 2 hours):</span>
+                <span className="ml-2 text-xs text-slate-600">
+                  {grokConversationsData.count}
+                  /
+                  {grokConversationsData.maxCount}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ProgressBar
+                  max={grokConversationsData.maxCount}
+                  value={grokConversationsData.count}
+                />
+                <span className="text-xs text-slate-500">
+                  {Math.round((grokConversationsData.count / grokConversationsData.maxCount) * 100)}
+                  %
+                </span>
+              </div>
+            </div>
+          )}
 
           <table className="w-full text-xs">
             <thead>
