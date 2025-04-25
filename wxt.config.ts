@@ -7,14 +7,6 @@ export default defineConfig({
     description: '__MSG_extension_description__',
     host_permissions: [
       'https://v0.dev/*',
-      'https://bolt.new/*',
-      'https://www.recraft.ai/*',
-      'https://api.recraft.ai/*',
-      'https://elevenlabs.io/*',
-      'https://api.us.elevenlabs.io/*',
-      'https://grok.com/*',
-      'https://www.cursor.com/*',
-      'https://same.new/*',
     ],
     name: '__MSG_extension_name__',
     optional_host_permissions: [
