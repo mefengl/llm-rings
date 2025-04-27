@@ -91,7 +91,7 @@ export default function App() {
             </>
           )
         : (
-            <div className="text-sm text-slate-400">Browse v0.dev to collect usage data</div>
+            <div className="text-center text-sm text-slate-400">Browse v0.dev to collect usage data</div>
           )}
     </div>
   )
