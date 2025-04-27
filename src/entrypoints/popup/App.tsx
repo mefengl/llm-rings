@@ -52,7 +52,7 @@ export default function App() {
   const v0 = useStorage<V0RateLimit>('local:v0RateLimit')
 
   return (
-    <div className="flex h-[400px] w-[300px] flex-col items-center justify-center bg-white font-sans">
+    <div className="flex h-[400px] w-[150px] flex-col items-center justify-center bg-white font-sans">
       {v0
         ? (
             <>
