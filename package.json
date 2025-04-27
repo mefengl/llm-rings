@@ -13,6 +13,7 @@
     "zip:firefox": "wxt zip -b firefox",
     "submit": "wxt submit",
     "submit:latest": "bun exec 'rm -rf .output'; wxt zip && wxt submit --chrome-zip .output/*.zip",
+    "release": "bun run bump && bun run submit:latest",
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare",
     "lint": "eslint .",
