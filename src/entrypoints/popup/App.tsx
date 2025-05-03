@@ -1,6 +1,5 @@
+import { exportPopupAsPng } from '@/lib/screenshot'
 import { useEffect, useState } from 'react'
-
-// 简化版，只保留 v0.dev 用量可视化
 
 type StorageKey =
   | `local:${string}`
@@ -52,7 +51,7 @@ export default function App() {
   const v0 = useStorage<V0RateLimit>('local:v0RateLimit')
 
   return (
-    <div className="flex h-[400px] w-[300px] flex-col items-center justify-center bg-white font-sans">
+    <div className="relative flex h-[400px] w-[300px] flex-col items-center justify-center bg-white font-sans">
       {v0
         ? (
             <>
@@ -93,6 +92,15 @@ export default function App() {
         : (
             <div className="text-center text-sm text-slate-400">Browse v0.dev to collect usage data</div>
           )}
+      <button
+        className="absolute bottom-2 right-2 cursor-pointer rounded bg-slate-100 p-1 text-xs text-slate-500 opacity-50 hover:bg-slate-200 hover:opacity-100"
+        id="export-button"
+        onClick={exportPopupAsPng}
+        style={{ zIndex: 10 }}
+        title="Export as PNG"
+      >
+        📸
+      </button>
     </div>
   )
 }
