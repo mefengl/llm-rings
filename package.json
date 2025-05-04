@@ -1,7 +1,7 @@
 {
   "name": "llm-rings",
   "type": "module",
-  "version": "4.0.5",
+  "version": "4.1.0",
   "private": true,
   "scripts": {
     "dev": "wxt",
