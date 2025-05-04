@@ -1,5 +1,5 @@
 import { exportPopupAsPng } from '@/lib/screenshot'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type StorageKey =
   | `local:${string}`
@@ -18,7 +18,14 @@ function useStorage<T>(key: StorageKey) {
     const unwatch = storage.watch<T>(key, setValue)
     return unwatch
   }, [key])
-  return value
+
+  const setItem = async (value: T) => {
+    await storage.setItem(key, value)
+    // Optimistically update state? Or rely on watcher?
+    // For simplicity, relying on watcher triggered by setItem
+  }
+
+  return [value, setItem] as const // Return tuple
 }
 
 // v0.dev rate-limit schema
@@ -48,7 +55,32 @@ function formatRelativeTime(timestamp?: number) {
 }
 
 export default function App() {
-  const v0 = useStorage<V0RateLimit>('local:v0RateLimit')
+  const [v0, _setV0] = useStorage<V0RateLimit>('local:v0RateLimit')
+  const [nickname, setNickname] = useStorage<string>('local:nickname')
+  const [isEditing, setIsEditing] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleSave = (value: string) => {
+    const trimmedValue = value.trim()
+    setNickname(trimmedValue)
+    setIsEditing(false)
+  }
+
+  // Handle edit state toggle and save
+  const handleEditToggle = () => {
+    setIsEditing(true)
+    // setTimeout ensures input is focused after rendering
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSave((e.target as HTMLInputElement).value)
+    }
+    else if (e.key === 'Escape') {
+      setIsEditing(false) // Cancel edit on ESC
+    }
+  }
 
   return (
     <div className="relative flex h-[400px] w-[300px] flex-col items-center justify-center bg-white font-sans">
@@ -92,6 +124,49 @@ export default function App() {
         : (
             <div className="text-center text-sm text-slate-400">Browse v0.dev to collect usage data</div>
           )}
+
+      {/* Nickname display/edit area (bottom-left) */}
+      <div
+        className="absolute bottom-2 left-2 flex items-center text-xs text-slate-500"
+        id="nickname-container"
+        style={{ zIndex: 15 }}
+      >
+        {isEditing
+          ? (
+              <input
+                className="w-full rounded border border-blue-400 px-1 py-px text-[10px] outline-none"
+                defaultValue={nickname ?? ''}
+                onBlur={e => handleSave(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Enter nickname..."
+                ref={inputRef}
+                type="text"
+              />
+            )
+          : (
+              <span
+                className={`mr-1 cursor-pointer ${!nickname ? 'italic text-slate-400' : ''}`}
+                onClick={handleEditToggle}
+                title="Click to edit nickname"
+              >
+                {nickname || 'Set nickname'}
+              </span>
+            )}
+        {/* Edit button only shown when not editing */}
+        {!isEditing
+        && (
+          <button
+            className="cursor-pointer opacity-50 hover:opacity-100"
+            id="edit-nickname-button"
+            onClick={handleEditToggle}
+            title="Edit nickname"
+          >
+            ✏️
+          </button>
+        )}
+      </div>
+
+      {/* Export button (bottom-right) */}
       <button
         className="absolute bottom-2 right-2 cursor-pointer rounded bg-slate-100 p-1 text-xs text-slate-500 opacity-50 hover:bg-slate-200 hover:opacity-100"
         id="export-button"

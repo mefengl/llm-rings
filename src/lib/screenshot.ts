@@ -4,6 +4,8 @@ export async function exportPopupAsPng() {
   // Find the root element and the button
   const root = document.getElementById('root')
   const exportButton = document.getElementById('export-button')
+  // Get the edit nickname button
+  const editButton = document.getElementById('edit-nickname-button')
 
   if (!root) {
     console.error('Root element not found for screenshot.')
@@ -25,19 +27,24 @@ export async function exportPopupAsPng() {
   root.style.position = 'relative' // Ensure positioning context
   root.appendChild(tag)
 
-  // Temporarily hide the export button if it exists
-  let originalButtonStyleDisplay = ''
-  if (exportButton) {
-    originalButtonStyleDisplay = exportButton.style.display
-    exportButton.style.display = 'none'
+  // --- Temporarily hide buttons ---
+  const hide = (el: HTMLElement | null): (() => void) => {
+    if (!el)
+      return () => {}
+    const originalDisplay = el.style.display
+    el.style.display = 'none'
+    return () => { el.style.display = originalDisplay }
   }
+
+  const restoreExportButton = hide(exportButton)
+  const restoreEditButton = hide(editButton) // Hide the edit button too
+  // --- End hiding buttons ---
 
   try {
     // 2. Take the screenshot
     const canvas = await html2canvas(root, {
       backgroundColor: null, // Use transparent background
-      // Ensure the temporary elements are ignored if possible (though hiding should suffice)
-      ignoreElements: element => element.id === 'export-button',
+      // No need for ignoreElements since we manually hide them
       logging: false, // Disable verbose logging
       useCORS: true, // Enable CORS for potential external resources
     })
@@ -56,11 +63,13 @@ export async function exportPopupAsPng() {
     if (root.contains(tag)) {
       root.removeChild(tag)
     }
-    root.style.position = '' // Reset position style if needed
+    // Reset position style only if it was changed
+    // Assuming it was empty before, can check originalRootPosition if needed
+    root.style.position = ''
 
-    // Restore the export button's visibility
-    if (exportButton) {
-      exportButton.style.display = originalButtonStyleDisplay
-    }
+    // --- Restore buttons ---
+    restoreExportButton()
+    restoreEditButton() // Restore the edit button
+    // --- End restoring buttons ---
   }
 }
