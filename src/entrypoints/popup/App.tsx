@@ -113,7 +113,7 @@ export default function App() {
               <div className="text-[10px] text-slate-400">
                 Reset:
                 {' '}
-                {new Date(v0.reset).toLocaleDateString()}
+                {new Date(v0.reset).toLocaleString(undefined, { day: 'numeric', hour: 'numeric', month: 'numeric', year: 'numeric' })}
                 {' '}
                 · Updated:
                 {' '}
