@@ -14,6 +14,8 @@ export default defineConfig({
     ],
     permissions: [
       'storage',
+      'alarms',
+      'notifications',
       'webRequest',
       'contextMenus',
       'activeTab',

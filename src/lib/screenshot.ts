@@ -33,7 +33,9 @@ export async function exportPopupAsPng() {
       return () => {}
     const originalDisplay = el.style.display
     el.style.display = 'none'
-    return () => { el.style.display = originalDisplay }
+    return () => {
+      el.style.display = originalDisplay
+    }
   }
 
   const restoreExportButton = hide(exportButton)

@@ -223,6 +223,43 @@ interface SameNewSubscription {
   usedPurchasedTokens: number
 }
 
+const USAGE_THRESHOLD = 0.9 // 90%
+const ADVANCE_HOURS = 10 // 10 hours
+
+const ms = (h = 1) => h * 3.6e6
+
+function scheduleReminder(v0: V0RateLimit) {
+  if (!v0 || typeof v0.reset !== 'number')
+    return
+  const fireAt = v0.reset - ms(ADVANCE_HOURS)
+  const name = 'usageReminder'
+  chrome.alarms.clear(name, (_wasCleared) => {
+    if (fireAt > Date.now())
+      chrome.alarms.create(name, { when: fireAt })
+  })
+}
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== 'usageReminder')
+    return
+  const v0 = await storage.getItem<V0RateLimit>('local:v0RateLimit')
+  if (!v0)
+    return
+  if (v0.limit === 0)
+    return
+  const usedCount = v0.limit - v0.remaining
+  const usedRatio = usedCount / v0.limit
+  if (usedRatio < USAGE_THRESHOLD) {
+    chrome.notifications.create({
+      iconUrl: 'icons/icon128.png',
+      message: `Used: ${Math.round(usedRatio * 100)}%, Remaining: ${v0.remaining}. Don\'t waste it before reset!`,
+      priority: 2,
+      title: 'v0.dev Usage Reminder',
+      type: 'basic',
+    })
+  }
+})
+
 export default defineBackground(() => {
   // Add permission toggle
   addPermissionToggle()
@@ -236,6 +273,7 @@ export default defineBackground(() => {
           const response = await fetch(details.url)
           const data: V0RateLimit = await response.json()
           await storage.setItem('local:v0RateLimit', { ...data, lastUpdate: now })
+          scheduleReminder(data)
         }
         catch (error) {
           console.error('Error fetching v0.dev rate limit:', error)
