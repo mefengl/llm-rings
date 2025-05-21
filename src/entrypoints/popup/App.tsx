@@ -30,6 +30,7 @@ function useStorage<T>(key: StorageKey) {
 
 // v0.dev rate-limit schema
 interface V0RateLimit {
+  billingStart?: number
   lastUpdate?: number
   limit: number
   remaining: number
@@ -84,45 +85,67 @@ export default function App() {
 
   return (
     <div className="relative flex h-[400px] w-[300px] flex-col items-center justify-center bg-white font-sans">
-      {v0
+      {v0 && v0.billingStart
         ? (
             <>
               <div className="mb-3 text-lg font-medium text-slate-700">v0.dev</div>
 
-              <div className="relative mb-4 h-2 w-48 overflow-hidden rounded-full bg-gray-100">
+              <div className="mb-1 w-48 text-left text-xs text-slate-500">Usage:</div>
+              <div className="relative mb-2 h-2 w-48 overflow-hidden rounded-full bg-gray-100">
                 <div
                   className="absolute left-0 top-0 h-full bg-emerald-500 transition-all"
                   style={{ width: `${Math.min(((v0.limit - v0.remaining) / v0.limit) * 100, 100)}%` }}
                 />
               </div>
-
-              <div className="mb-1 text-3xl font-bold text-slate-800">
+              <div className="mb-2 w-48 text-right text-xs text-slate-500">
                 {v0.limit - v0.remaining}
-                <span className="text-base text-slate-400">
-                  {' '}
-                  /
-                  {v0.limit}
-                </span>
+                {' '}
+                /
+                {v0.limit}
+                {' '}
+                (
+                {Math.round(((v0.limit - v0.remaining) / v0.limit) * 100)}
+                % used)
               </div>
 
-              <div className="mb-1 text-xs text-slate-500">
-                {Math.round(((v0.limit - v0.remaining) / v0.limit) * 100)}
-                % used
-              </div>
+              {v0.billingStart && v0.reset && v0.reset > v0.billingStart && (
+                <>
+                  <div className="mb-1 w-48 text-left text-xs text-slate-500">Period:</div>
+                  <div className="relative mb-2 h-2 w-48 overflow-hidden rounded-full bg-gray-100">
+                    <div
+                      className="absolute left-0 top-0 h-full transition-all"
+                      style={{
+                        backgroundImage: 'repeating-linear-gradient(to right, #0ea5e9 0px, #0ea5e9 4px, transparent 4px, transparent 6px)',
+                        width: `${Math.min(
+                          ((Date.now() - v0.billingStart) / (v0.reset - v0.billingStart)) * 100,
+                          100,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="mb-4 w-48 text-right text-xs text-slate-500">
+                    {new Date(v0.billingStart).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                    {' '}
+                    -
+                    {new Date(v0.reset).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                    (
+                    {Math.round(((Date.now() - v0.billingStart) / (v0.reset - v0.billingStart)) * 100)}
+                    % elapsed)
+                  </div>
+                </>
+              )}
 
               <div className="text-[10px] text-slate-400">
-                Reset:
-                {' '}
-                {new Date(v0.reset).toLocaleString(undefined, { day: 'numeric', hour: 'numeric', month: 'numeric', year: 'numeric' })}
-                {' '}
-                · Updated:
+                Updated:
                 {' '}
                 {formatRelativeTime(v0.lastUpdate)}
               </div>
             </>
           )
         : (
-            <div className="text-center text-sm text-slate-400">Browse v0.dev to collect usage data</div>
+            <div className="text-center text-sm text-slate-400">
+              {v0 ? 'Waiting for full billing cycle data...' : 'Browse v0.dev to collect usage data'}
+            </div>
           )}
 
       {/* Nickname display/edit area (bottom-left) */}

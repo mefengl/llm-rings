@@ -19,6 +19,7 @@ const throttle: ThrottleFunction = (fn, delay) => {
 
 // Define interfaces for API responses
 interface V0RateLimit {
+  billingStart?: number
   lastUpdate?: number
   limit: number
   remaining: number
@@ -35,6 +36,7 @@ interface V0PlanInfo {
 
 function adaptPlanInfo(p: V0PlanInfo, now: number): V0RateLimit {
   return {
+    billingStart: p.billingCycle.start,
     lastUpdate: now,
     limit: p.balance.total,
     remaining: p.balance.remaining,
