@@ -115,7 +115,7 @@ export default function App() {
                     <div
                       className="absolute left-0 top-0 h-full transition-all"
                       style={{
-                        backgroundImage: 'repeating-linear-gradient(to right, #0ea5e9 0px, #0ea5e9 4px, transparent 4px, transparent 6px)',
+                        backgroundColor: '#38bdf8',
                         width: `${Math.min(
                           ((Date.now() - v0.billingStart) / (v0.reset - v0.billingStart)) * 100,
                           100,
