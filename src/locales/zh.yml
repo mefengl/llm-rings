@@ -1,4 +1,4 @@
 extension:
-  name: LLM Rings
-  description: 跟踪 llm 应用程序的速率限制，例如 v0 chat, bolt ai
+  name: V0 Rings
+  description: 追踪你的 v0.dev 使用量和速率限制
 hello: 你好

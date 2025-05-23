@@ -1,4 +1,4 @@
 extension:
-  name: LLM Rings
-  description: Track llm app rate limits, such as v0 chat, bolt ai
+  name: V0 Rings
+  description: Track your v0.dev usage and rate limits
 hello: Hello

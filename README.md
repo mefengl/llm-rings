@@ -1,5 +1,5 @@
-# llm rings
+# v0 rings
 
-The purpose of doing this is to urge myself to use AI more, so it's necessary to have a tool to check if I've used up my quota.
+A Chrome extension to track your v0.dev usage and rate limits. Perfect for power users who want to monitor their AI development quota.
 
 https://chromewebstore.google.com/detail/llm-rings/mnlcelilfeadmioglgbkbipmphfbmjhn
